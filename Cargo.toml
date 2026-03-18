@@ -1,0 +1,15 @@
+[package]
+name = "rpncalc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+dashu = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "5"
+arboard = "3"
+toml = "~0.8"
+signal-hook = "~0.3"
