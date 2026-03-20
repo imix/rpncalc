@@ -1,7 +1,5 @@
-// TODO: Story 2.1 — Full AppMode state machine integration
-
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum ChordCategory {
     Trig,
     Log,
@@ -12,10 +10,11 @@ pub enum ChordCategory {
     HexStyle,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
+#[allow(dead_code)]
 pub enum AppMode {
     Normal,
     Alpha(String),
+    AlphaStore(String),
     Chord(ChordCategory),
 }

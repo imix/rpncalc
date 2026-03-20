@@ -8,6 +8,7 @@ use dashu::integer::IBig;
 
 /// All calculator operations. Dispatched via `apply_op`.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[allow(dead_code)]
 pub enum Op {
     // Binary
     Add,
@@ -328,15 +329,8 @@ fn do_factorial(v: CalcValue) -> Result<CalcValue, CalcError> {
                     "factorial requires non-negative integer".to_string(),
                 ));
             }
-            let n: u64 = x
-                .to_string()
-                .parse()
+            let n: u64 = u64::try_from(&x)
                 .map_err(|_| CalcError::DomainError("factorial argument too large".to_string()))?;
-            if n > 10000 {
-                return Err(CalcError::DomainError(
-                    "factorial argument too large".to_string(),
-                ));
-            }
             let mut result = IBig::from(1u32);
             for i in 2..=n {
                 result *= IBig::from(i);

@@ -1,11 +1,14 @@
 use crate::engine::CalcError;
 use crate::input::action::Action;
 
+#[allow(dead_code)]
 pub fn parse_command(input: &str) -> Result<Action, CalcError> {
     let parts: Vec<&str> = input.split_whitespace().collect();
     match parts.as_slice() {
         [name, "STORE"] => Ok(Action::StoreRegister(name.to_string())),
         [name, "RCL"] => Ok(Action::RecallRegister(name.to_string())),
+        [name, "DEL"] => Ok(Action::DeleteRegister(name.to_string())),
+        ["RESET"] => Ok(Action::ResetSession),
         _ => Err(CalcError::InvalidInput(format!(
             "Unknown command: {}",
             input
@@ -53,6 +56,31 @@ mod tests {
             parse_command("r1 RCL"),
             Ok(Action::RecallRegister("r1".to_string()))
         );
+    }
+
+    // ── DEL ──────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_del_command_simple() {
+        assert_eq!(
+            parse_command("myvar DEL"),
+            Ok(Action::DeleteRegister("myvar".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_del_command_alphanumeric() {
+        assert_eq!(
+            parse_command("r1 DEL"),
+            Ok(Action::DeleteRegister("r1".to_string()))
+        );
+    }
+
+    // ── RESET ─────────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_reset_command() {
+        assert_eq!(parse_command("RESET"), Ok(Action::ResetSession));
     }
 
     // ── errors ───────────────────────────────────────────────────────────────

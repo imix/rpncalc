@@ -26,6 +26,7 @@ impl AngleMode {
         }
     }
 
+    #[allow(dead_code)]
     pub fn cycle(self) -> AngleMode {
         match self {
             AngleMode::Deg => AngleMode::Rad,

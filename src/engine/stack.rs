@@ -5,7 +5,7 @@ use crate::engine::value::CalcValue;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CalcState {
     pub stack: Vec<CalcValue>,
     pub registers: HashMap<String, CalcValue>,
@@ -25,6 +25,7 @@ impl CalcState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.stack.is_empty()
     }

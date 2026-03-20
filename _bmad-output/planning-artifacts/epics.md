@@ -366,7 +366,7 @@ So that I always know the current state of my calculation without any mental ove
 
 **Given** values are on the stack
 **When** the stack pane renders
-**Then** each row is labelled — the bottom four rows as X, Y, Z, T; deeper rows numbered from 5 upward
+**Then** each row is labelled numerically from bottom: `1:` (most recent), `2:`, `3:`, … (HP48 convention)
 
 **Given** a value is wider than the available column
 **When** the stack pane renders

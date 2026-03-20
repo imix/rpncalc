@@ -24,14 +24,24 @@ impl CalcValue {
         CalcValue::Float(FBig::try_from(val).unwrap_or(FBig::ZERO))
     }
 
+    #[allow(dead_code)]
     pub fn is_integer(&self) -> bool {
         matches!(self, CalcValue::Integer(_))
     }
 
+    #[allow(dead_code)]
     pub fn to_ibig(&self) -> Option<IBig> {
         match self {
             CalcValue::Integer(n) => Some(n.clone()),
             CalcValue::Float(_) => None,
+        }
+    }
+
+    /// Display with configurable float precision. Integers ignore precision.
+    pub fn display_with_precision(&self, base: Base, precision: usize) -> String {
+        match self {
+            CalcValue::Integer(_) => self.display_with_base(base),
+            CalcValue::Float(f) => format_fbig_prec(f, precision),
         }
     }
 
@@ -120,6 +130,19 @@ pub(crate) fn format_fbig(f: &FBig) -> String {
     }
 }
 
+pub(crate) fn format_fbig_prec(f: &FBig, precision: usize) -> String {
+    let val = f.to_f64().value();
+    if val.is_nan() || val.is_infinite() {
+        return format!("{}", val);
+    }
+    let s = format!("{:.prec$}", val, prec = precision);
+    if s.contains('.') {
+        s.trim_end_matches('0').trim_end_matches('.').to_string()
+    } else {
+        s
+    }
+}
+
 impl fmt::Display for CalcValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.display_with_base(Base::Dec))
@@ -155,6 +178,32 @@ mod tests {
         let json = serde_json::to_string(&original).expect("serialize");
         let restored: CalcValue = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(original.to_f64(), restored.to_f64());
+    }
+
+    // ── Story 4.4: precision-aware display ──────────────────────────────────
+
+    #[test]
+    fn test_display_with_precision_float_10() {
+        // 3.141592653589793 at precision 10 → "3.1415926536" (rounded, trailing zeros trimmed)
+        let val = CalcValue::from_f64(std::f64::consts::PI);
+        let s = val.display_with_precision(Base::Dec, 10);
+        assert_eq!(s, "3.1415926536", "precision 10 PI: got {}", s);
+    }
+
+    #[test]
+    fn test_display_with_precision_trims_zeros() {
+        let val = CalcValue::from_f64(3.0);
+        let s = val.display_with_precision(Base::Dec, 5);
+        assert_eq!(s, "3", "3.0 at precision 5 should trim to '3', got {}", s);
+    }
+
+    #[test]
+    fn test_display_with_precision_integer_ignores_precision() {
+        let val = CalcValue::Integer(IBig::from(42));
+        let s5 = val.display_with_precision(Base::Dec, 5);
+        let s15 = val.display_with_precision(Base::Dec, 15);
+        assert_eq!(s5, "42");
+        assert_eq!(s15, "42");
     }
 
     #[test]

@@ -3,6 +3,7 @@ use crate::engine::CalcError;
 use dashu::float::FBig;
 use dashu::integer::IBig;
 
+#[allow(dead_code)]
 pub fn parse_value(input: &str) -> Result<CalcValue, CalcError> {
     // Remove underscores (digit separators)
     let clean: String = input.chars().filter(|&c| c != '_').collect();

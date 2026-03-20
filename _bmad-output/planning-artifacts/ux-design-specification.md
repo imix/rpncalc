@@ -286,7 +286,7 @@ All monospace — terminal constraint, non-negotiable. Hierarchy achieved throug
 
 **Alignment rules:**
 - Stack values: right-aligned within the value column (natural numeric alignment)
-- Stack row labels: left-aligned (`X:`, `Y:`, `Z:`, `T:` or `1:`, `2:`, `3:`)
+- Stack row labels: right-aligned numeric (`1:` at bottom, `2:`, `3:`, … upward — HP48 convention)
 - Hints keybindings: fixed-width column, left-aligned key, right-padded to description
 - Status bar: left-anchored mode indicator, right-anchored base/angle/style indicators
 
@@ -303,7 +303,7 @@ Dense by default. This is a power tool — screen real estate serves information
 │ 3: 24576            │ +  add    -  sub           │
 │ 2: ...              │ *  mul    /  div           │
 │ 1: ...              │ ^  pow    %  mod           │
-│ X: 5.333...         │                            │
+│ 1: 5.333...         │                            │
 │─────────────────────│ STACK                      │
 │ > _                 │ s  swap   d  drop          │
 │─────────────────────│ p  dup    r  rot           │
@@ -343,7 +343,7 @@ Three structural layouts were evaluated:
 │ 4:  131072   │ ARITHMETIC              │
 │ 3:   24576   │ +  add    -  sub        │
 │ 2:           │ *  mul    /  div        │
-│ X:   5.333   │ ^  pow    %  mod  !  !  │
+│ 1:   5.333   │ ^  pow    %  mod  !  !  │
 │              │ STACK OPS               │
 │              │ s  swap   d  drop       │
 │              │ p  dup    r  rot        │
@@ -476,7 +476,7 @@ None. This is a fully custom TUI — ratatui provides layout primitives (constra
 #### StackPane
 
 **Purpose:** Displays the current calculator stack, most-recent value at bottom (X register).
-**Content:** Numbered rows (`X:`, `Y:`, `Z:`, `T:`, then `5:`, `6:` etc.); values right-aligned in current base/representation.
+**Content:** Numbered rows (`1:` at bottom, `2:`, `3:`, … upward — HP48 convention); values right-aligned in current base/representation.
 **States:**
 - `empty` — shows placeholder text or blank rows
 - `normal` — values displayed, X row bolded/accented

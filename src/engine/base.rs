@@ -10,6 +10,7 @@ pub enum Base {
 }
 
 impl Base {
+    #[allow(dead_code)]
     pub fn cycle(self) -> Base {
         match self {
             Base::Dec => Base::Hex,
@@ -53,6 +54,7 @@ pub enum HexStyle {
 }
 
 impl HexStyle {
+    #[allow(dead_code)]
     pub fn cycle(self) -> HexStyle {
         match self {
             HexStyle::ZeroX => HexStyle::Dollar,

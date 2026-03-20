@@ -1,1 +1,540 @@
-// TODO: Story 3.1 — HintsPane widget and state machine implementation
+use ratatui::{
+    layout::Rect,
+    style::{Modifier, Style},
+    text::Line,
+    widgets::Paragraph,
+    Frame,
+};
+
+use crate::engine::stack::CalcState;
+use crate::input::mode::{AppMode, ChordCategory};
+
+const ARITHMETIC: &[(&str, &str)] = &[
+    ("+", "add"),
+    ("-", "sub"),
+    ("*", "mul"),
+    ("/", "div"),
+    ("^", "pow"),
+    ("%", "mod"),
+    ("!", "fact"),
+    ("n", "neg"),
+];
+
+const STACK_OPS: &[(&str, &str)] = &[
+    ("s", "swap"),
+    ("d", "drop"),
+    ("p", "dup"),
+    ("r", "rot"),
+    ("u", "undo"),
+    ("y", "yank"),
+    ("S", "store"),
+];
+
+const TRIG_OPS: &[(&str, &str)] = &[
+    ("s", "sin"),
+    ("c", "cos"),
+    ("a", "tan"),
+    ("S", "asin"),
+    ("C", "acos"),
+    ("A", "atan"),
+];
+
+const LOG_OPS: &[(&str, &str)] = &[("l", "ln"), ("L", "log10"), ("e", "exp"), ("E", "exp10")];
+
+const FN_OPS: &[(&str, &str)] = &[("s", "sqrt"), ("q", "sq"), ("r", "recip"), ("a", "abs")];
+
+const CONST_OPS: &[(&str, &str)] = &[("p", "π"), ("e", "e"), ("g", "φ")];
+
+const ANGLE_OPS: &[(&str, &str)] = &[("d", "deg"), ("r", "rad"), ("g", "grad")];
+
+const BASE_OPS: &[(&str, &str)] = &[("c", "dec"), ("h", "hex"), ("o", "oct"), ("b", "bin")];
+
+const HEX_STYLE_OPS: &[(&str, &str)] = &[("c", "0xFF"), ("a", "$FF"), ("s", "#FF"), ("i", "FFh")];
+
+const CHORD_LEADERS: &[(&str, &str)] = &[
+    ("t", "trig"),
+    ("l", "log"),
+    ("f", "fn"),
+    ("c", "const"),
+    ("m", "mode"),
+    ("x", "base"),
+    ("X", "hex"),
+];
+
+const UNARY_OPS: &[(&str, &str)] = &[("!", "fact"), ("n", "neg")];
+
+const CHORD_LEADERS_DEPTH0: &[(&str, &str)] =
+    &[("c", "const"), ("m", "mode"), ("x", "base"), ("X", "hex")];
+
+fn entries_to_lines(entries: &[(&str, &str)]) -> Vec<Line<'static>> {
+    entries
+        .chunks(2)
+        .map(|chunk| {
+            let left = format!("{:<2} {:<6}", chunk[0].0, chunk[0].1);
+            let right = chunk
+                .get(1)
+                .map(|(k, l)| format!("  {:<2} {:<6}", k, l))
+                .unwrap_or_default();
+            Line::raw(format!("{}{}", left, right))
+        })
+        .collect()
+}
+
+fn chord_leaders_to_lines(leaders: &[(&str, &str)]) -> Vec<Line<'static>> {
+    leaders
+        .chunks(2)
+        .map(|chunk| {
+            let left = format!("{}›  {:<5}", chunk[0].0, chunk[0].1);
+            let right = chunk
+                .get(1)
+                .map(|(k, l)| format!("  {}›  {:<5}", k, l))
+                .unwrap_or_default();
+            Line::raw(format!("{}{}", left, right))
+        })
+        .collect()
+}
+
+fn registers_to_lines(state: &CalcState) -> Vec<Line<'static>> {
+    let mut entries: Vec<_> = state.registers.iter().collect();
+    entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+    entries
+        .into_iter()
+        .map(|(name, val)| {
+            let val_str = val.display_with_base(state.base);
+            Line::raw(format!("{name}  {val_str}  {name} RCL"))
+        })
+        .collect()
+}
+
+pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
+    let dim = Style::default().add_modifier(Modifier::DIM);
+
+    if matches!(mode, AppMode::AlphaStore(_)) {
+        let lines = vec![
+            Line::styled("STORE NAME", dim),
+            Line::raw(""),
+            Line::raw("Enter  store"),
+            Line::raw("Esc    cancel"),
+            Line::raw("Bksp   delete"),
+        ];
+        f.render_widget(Paragraph::new(lines), area);
+        return;
+    }
+
+    if matches!(mode, AppMode::Alpha(_)) {
+        let lines = vec![
+            Line::raw("Enter  push"),
+            Line::raw("Esc    cancel"),
+            Line::raw("Bksp   delete"),
+            Line::raw(""),
+            Line::raw("+  add    -  sub"),
+            Line::raw("*  mul    /  div"),
+            Line::raw("^  pow    !  fact"),
+            Line::raw("%  mod    p  dup"),
+            Line::raw("n  neg    s  swap"),
+            Line::raw("d  drop   r  rot"),
+        ];
+        f.render_widget(Paragraph::new(lines), area);
+        return;
+    }
+
+    if let AppMode::Chord(category) = mode {
+        let (header, ops): (&str, &[(&str, &str)]) = match category {
+            ChordCategory::Trig => ("[TRIG]", TRIG_OPS),
+            ChordCategory::Log => ("[LOG]", LOG_OPS),
+            ChordCategory::Functions => ("[FN]", FN_OPS),
+            ChordCategory::Constants => ("[CONST]", CONST_OPS),
+            ChordCategory::AngleMode => ("[MODE]", ANGLE_OPS),
+            ChordCategory::Base => ("[BASE]", BASE_OPS),
+            ChordCategory::HexStyle => ("[HEX]", HEX_STYLE_OPS),
+        };
+        let mut lines: Vec<Line<'static>> = vec![Line::styled(header, dim)];
+        lines.extend(entries_to_lines(ops));
+        f.render_widget(Paragraph::new(lines), area);
+        return;
+    }
+
+    let depth = state.stack.len();
+    let mut lines: Vec<Line<'static>> = Vec::new();
+
+    if depth >= 2 {
+        lines.push(Line::styled("ARITHMETIC", dim));
+        lines.extend(entries_to_lines(ARITHMETIC));
+        lines.push(Line::raw(""));
+    } else if depth == 1 {
+        lines.push(Line::styled("ARITHMETIC", dim));
+        lines.extend(entries_to_lines(UNARY_OPS));
+        lines.push(Line::raw(""));
+    }
+
+    lines.push(Line::styled("STACK", dim));
+    lines.extend(entries_to_lines(STACK_OPS));
+    lines.push(Line::raw(""));
+
+    if depth == 0 {
+        lines.extend(chord_leaders_to_lines(CHORD_LEADERS_DEPTH0));
+    } else {
+        lines.extend(chord_leaders_to_lines(CHORD_LEADERS));
+    }
+
+    if !state.registers.is_empty() {
+        lines.push(Line::raw(""));
+        lines.push(Line::styled("REGISTERS", dim));
+        lines.extend(registers_to_lines(state));
+    }
+
+    f.render_widget(Paragraph::new(lines), area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::stack::CalcState;
+    use crate::engine::value::CalcValue;
+    use ratatui::{backend::TestBackend, Terminal};
+
+    fn state_with_depth(n: usize) -> CalcState {
+        let mut s = CalcState::new();
+        for i in 0..n {
+            s.stack.push(CalcValue::from_f64(i as f64 + 1.0));
+        }
+        s
+    }
+
+    fn render_hints(
+        mode: AppMode,
+        state: CalcState,
+        width: u16,
+        height: u16,
+    ) -> ratatui::buffer::Buffer {
+        let backend = TestBackend::new(width, height);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal
+            .draw(|f| render(f, f.area(), &mode, &state))
+            .unwrap();
+        terminal.backend().buffer().clone()
+    }
+
+    fn full_content(buf: &ratatui::buffer::Buffer) -> String {
+        let area = buf.area();
+        (0..area.height)
+            .flat_map(|y| (0..area.width).map(move |x| (x, y)))
+            .map(|(x, y)| buf.cell((x, y)).unwrap().symbol().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn test_normal_mode_shows_arithmetic_header() {
+        let buf = render_hints(AppMode::Normal, state_with_depth(2), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("ARITHMETIC"));
+    }
+
+    #[test]
+    fn test_normal_mode_shows_stack_header() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("STACK"));
+    }
+
+    #[test]
+    fn test_normal_mode_shows_chord_leaders() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains('›'));
+    }
+
+    #[test]
+    fn test_normal_mode_shows_add_op() {
+        let buf = render_hints(AppMode::Normal, state_with_depth(2), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains('+'));
+        assert!(content.contains("add"));
+    }
+
+    #[test]
+    fn test_alpha_mode_shows_push_hint() {
+        let buf = render_hints(AppMode::Alpha(String::new()), CalcState::new(), 40, 10);
+        let content = full_content(&buf);
+        assert!(content.contains("push"));
+        assert!(!content.contains("ARITHMETIC"));
+    }
+
+    #[test]
+    fn test_alpha_mode_shows_cancel_hint() {
+        let buf = render_hints(AppMode::Alpha(String::new()), CalcState::new(), 40, 10);
+        let content = full_content(&buf);
+        assert!(content.contains("cancel"));
+    }
+
+    #[test]
+    fn test_narrow_pane_no_panic() {
+        // Just verify it doesn't panic with a very small area
+        let _ = render_hints(AppMode::Normal, CalcState::new(), 5, 3);
+    }
+
+    #[test]
+    fn test_chord_trig_shows_header() {
+        let buf = render_hints(
+            AppMode::Chord(ChordCategory::Trig),
+            CalcState::new(),
+            40,
+            10,
+        );
+        let content = full_content(&buf);
+        assert!(content.contains("[TRIG]"));
+    }
+
+    #[test]
+    fn test_chord_trig_shows_sin() {
+        let buf = render_hints(
+            AppMode::Chord(ChordCategory::Trig),
+            CalcState::new(),
+            40,
+            10,
+        );
+        let content = full_content(&buf);
+        assert!(content.contains("sin"));
+    }
+
+    #[test]
+    fn test_chord_trig_hides_arithmetic_header() {
+        let buf = render_hints(
+            AppMode::Chord(ChordCategory::Trig),
+            CalcState::new(),
+            40,
+            10,
+        );
+        let content = full_content(&buf);
+        assert!(!content.contains("ARITHMETIC"));
+    }
+
+    #[test]
+    fn test_chord_base_shows_hex() {
+        let buf = render_hints(
+            AppMode::Chord(ChordCategory::Base),
+            CalcState::new(),
+            40,
+            10,
+        );
+        let content = full_content(&buf);
+        assert!(content.contains("hex"));
+    }
+
+    // ── Depth-filtering tests (Story 3.4) ────────────────────────────────────
+
+    #[test]
+    fn test_depth0_hides_arithmetic_header() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains("ARITHMETIC"));
+    }
+
+    #[test]
+    fn test_depth0_hides_binary_ops() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains('+'));
+        assert!(!content.contains("add"));
+    }
+
+    #[test]
+    fn test_depth0_hides_unary_ops() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains("fact"));
+        assert!(!content.contains("neg"));
+    }
+
+    #[test]
+    fn test_depth0_shows_constants_leader() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("const"));
+    }
+
+    #[test]
+    fn test_depth0_shows_stack_ops() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("STACK"));
+    }
+
+    #[test]
+    fn test_depth0_hides_trig_leader() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains("trig"));
+    }
+
+    #[test]
+    fn test_depth1_shows_unary_ops() {
+        let buf = render_hints(AppMode::Normal, state_with_depth(1), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("fact"));
+        assert!(content.contains("neg"));
+    }
+
+    #[test]
+    fn test_depth1_hides_binary_ops() {
+        let buf = render_hints(AppMode::Normal, state_with_depth(1), 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains("add"));
+        assert!(!content.contains("sub"));
+    }
+
+    #[test]
+    fn test_depth1_shows_all_chord_leaders() {
+        let buf = render_hints(AppMode::Normal, state_with_depth(1), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("trig"));
+    }
+
+    #[test]
+    fn test_depth2_shows_full_arithmetic() {
+        let buf = render_hints(AppMode::Normal, state_with_depth(2), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("add"));
+        assert!(content.contains("mul"));
+    }
+
+    // ── Register section tests (Story 3.5) ───────────────────────────────────
+
+    #[test]
+    fn test_no_registers_hides_section() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains("REGISTERS"));
+    }
+
+    #[test]
+    fn test_registers_shows_section_header() {
+        let mut s = CalcState::new();
+        s.registers
+            .insert("r1".to_string(), CalcValue::from_f64(3.14));
+        let buf = render_hints(AppMode::Normal, s, 40, 20);
+        let content = full_content(&buf);
+        assert!(content.contains("REGISTERS"));
+    }
+
+    #[test]
+    fn test_registers_shows_register_name() {
+        let mut s = CalcState::new();
+        s.registers
+            .insert("r1".to_string(), CalcValue::from_f64(3.14));
+        let buf = render_hints(AppMode::Normal, s, 40, 20);
+        let content = full_content(&buf);
+        assert!(content.contains("r1"));
+    }
+
+    #[test]
+    fn test_registers_shows_recall_command() {
+        let mut s = CalcState::new();
+        s.registers
+            .insert("r1".to_string(), CalcValue::from_f64(1.0));
+        let buf = render_hints(AppMode::Normal, s, 40, 20);
+        let content = full_content(&buf);
+        assert!(content.contains("r1 RCL"));
+    }
+
+    #[test]
+    fn test_registers_not_shown_in_alpha_mode() {
+        let mut s = CalcState::new();
+        s.registers
+            .insert("r1".to_string(), CalcValue::from_f64(1.0));
+        let buf = render_hints(AppMode::Alpha(String::new()), s, 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains("REGISTERS"));
+    }
+
+    #[test]
+    fn test_multiple_registers_all_shown() {
+        let mut s = CalcState::new();
+        s.registers
+            .insert("aa".to_string(), CalcValue::from_f64(1.0));
+        s.registers
+            .insert("bb".to_string(), CalcValue::from_f64(2.0));
+        let buf = render_hints(AppMode::Normal, s, 40, 25);
+        let content = full_content(&buf);
+        assert!(content.contains("aa"));
+        assert!(content.contains("bb"));
+    }
+
+    // ── Story 4.1: Named Memory Registers ────────────────────────────────────
+
+    // AC 5: normal mode shows S and "store" in STACK section
+    #[test]
+    fn test_normal_mode_shows_store_hint() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 20);
+        let content = full_content(&buf);
+        assert!(
+            content.contains('S'),
+            "S key should appear in normal mode hints"
+        );
+        assert!(
+            content.contains("store"),
+            "store label should appear in normal mode hints"
+        );
+    }
+
+    // AC 4: alpha mode shows AlphaSubmitThen bindings (all 12)
+    #[test]
+    fn test_alpha_mode_shows_submit_then_bindings() {
+        let buf = render_hints(AppMode::Alpha(String::new()), CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("add"), "alpha mode should show 'add' hint");
+        assert!(content.contains("sub"), "alpha mode should show 'sub' hint");
+        assert!(content.contains("mul"), "alpha mode should show 'mul' hint");
+        assert!(content.contains("div"), "alpha mode should show 'div' hint");
+        assert!(content.contains("mod"), "alpha mode should show 'mod' hint");
+        assert!(content.contains("dup"), "alpha mode should show 'dup' hint");
+    }
+
+    // AC 4: alpha mode still shows push/cancel/delete
+    #[test]
+    fn test_alpha_mode_still_shows_push_cancel() {
+        let buf = render_hints(AppMode::Alpha(String::new()), CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("push"));
+        assert!(content.contains("cancel"));
+    }
+
+    // AC 6: AlphaStore mode shows STORE NAME header and store prompt
+    #[test]
+    fn test_alpha_store_mode_shows_store_prompt() {
+        let buf = render_hints(AppMode::AlphaStore(String::new()), CalcState::new(), 40, 10);
+        let content = full_content(&buf);
+        assert!(
+            content.contains("store"),
+            "AlphaStore mode should show 'store' action"
+        );
+        assert!(
+            content.contains("cancel"),
+            "AlphaStore mode should show 'cancel' action"
+        );
+        assert!(
+            content.contains("delete"),
+            "AlphaStore mode should show 'delete' action"
+        );
+    }
+
+    // AC 6: AlphaStore mode does NOT show arithmetic or stack ops
+    #[test]
+    fn test_alpha_store_hides_normal_hints() {
+        let buf = render_hints(AppMode::AlphaStore(String::new()), CalcState::new(), 40, 10);
+        let content = full_content(&buf);
+        assert!(!content.contains("ARITHMETIC"));
+        assert!(!content.contains("STACK"));
+    }
+
+    // AlphaStore mode does NOT show register section
+    #[test]
+    fn test_alpha_store_hides_registers_section() {
+        let mut s = CalcState::new();
+        s.registers
+            .insert("r1".to_string(), CalcValue::from_f64(1.0));
+        let buf = render_hints(AppMode::AlphaStore(String::new()), s, 40, 15);
+        let content = full_content(&buf);
+        assert!(!content.contains("REGISTERS"));
+    }
+}

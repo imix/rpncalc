@@ -2,9 +2,11 @@ use crate::engine::angle::AngleMode;
 use crate::engine::base::{Base, HexStyle};
 use crate::engine::ops::Op;
 use crate::engine::value::CalcValue;
+use crate::input::mode::ChordCategory;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Action {
+    #[allow(dead_code)] // constructed in tests and future session-restore path
     Push(CalcValue),
     Execute(Op),
     SetBase(Base),
@@ -13,10 +15,20 @@ pub enum Action {
     StoreRegister(String),
     RecallRegister(String),
     DeleteRegister(String),
+    ResetSession,
+    EnterStoreMode,
     Undo,
     Redo,
     Yank,
     EnterAlphaMode,
+    AlphaChar(char),
+    AlphaBackspace,
+    AlphaSubmit,
+    AlphaSubmitThen(Op),
+    AlphaCancel,
+    EnterChordMode(ChordCategory),
+    ChordCancel,
+    ChordInvalid,
     Quit,
     Noop,
 }
@@ -31,5 +43,6 @@ mod tests {
         let _ = Action::Push(CalcValue::Integer(IBig::from(42)));
         let _ = Action::Execute(Op::Sin);
         let _ = Action::Undo;
+        let _ = Action::ResetSession;
     }
 }
