@@ -16,6 +16,8 @@
 
 ## Commits
 <!-- taproot link-commits will fill this -->
+- `c42baefa5dba48eeabed1903a45ab80be4ce3c43` — (auto-linked by taproot link-commits)
+- `b38d60f578b4cb4b67ac1ea88fc24b71eaf86d44` — (auto-linked by taproot link-commits)
 
 ## Tests
 All ACs are verified by content inspection:
@@ -32,3 +34,4 @@ All ACs are verified by content inspection:
 - **State:** complete
 - **Created:** 2026-03-24
 - **Last verified:** 2026-03-24
+- **2026-03-24:** ASCII art corrected — outer `╭─ rpncalc ─╮` border, Stack+Hints panes equal-height side by side, input/separator/mode bar inside outer border (no separate Input box)
