@@ -26,13 +26,15 @@
 
 ## Commits
 <!-- taproot link-commits will fill this -->
+- `3e6badc8feed7dfd5b3db35e37fbd27e5d7bb0a6` — (auto-linked by taproot link-commits)
+- `074982a52170d2fd53fa836c6ea66921a28727b4` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/tui/layout.rs` — updated corner char test (╭), new title/separator tests
 - `src/tui/widgets/hints_pane.rs` — new bordered block test
 
 ## Status
-- **State:** complete
+- **State:** needs-rework
 - **Created:** 2026-03-24
 - **Last verified:** 2026-03-24
 

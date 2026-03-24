@@ -40,6 +40,8 @@
 ## Commits
 - 1695d6a feat: complete Epic 1 — Core Engine Foundation
 - 7066c63 feat: complete Epics 2–4 + layout width cap
+- `d6e76b6316b2d36e54c992dc1cf434d9070b2bc3` — (auto-linked by taproot link-commits)
+- `08fe974b28285b99ef851a0186131def26cc2cf2` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/input/handler.rs` — handler tests: Insert mode op shortcuts
@@ -63,6 +65,6 @@
   AlphaSubmit dispatches commands only; two separate action sets
 
 ## Status
-- **State:** complete
+- **State:** needs-rework
 - **Created:** 2026-03-21
 - **Last verified:** 2026-03-24

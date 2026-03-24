@@ -32,6 +32,8 @@ User (CLI power user)
 - Stack depth increases by 1
 - New value is at the top (X position)
 - Display updates to show the value in the current base/representation style
+- Stack position labels (`1:` at top, `2:`, `3:`…) are always visible regardless
+  of stack depth; empty rows show the label with no value beside it
 
 ## Flow
 
@@ -57,6 +59,8 @@ stateDiagram-v2
 
 **AC-5:** Given Insert mode is active, when an operation shortcut key (e.g. `s`, `+`) is pressed, then the current buffer is submitted and the operation executes immediately.
 
+**AC-6:** Given the stack is empty, when the TUI renders the stack pane, then position labels (`1:`, `2:`, `3:`…) are shown for all visible rows with no value beside them.
+
 ## Related
 - **Sibling**: [User arranges stack values](../arrange-stack-values/usecase.md)
 - **Alpha mode** (free-text entry via `i` key, no shortcuts): see [named registers](../../state-and-memory/named-registers/usecase.md)
@@ -70,3 +74,4 @@ stateDiagram-v2
 - **State:** specified
 - **Created:** 2026-03-21
 - **Last reviewed:** 2026-03-24
+

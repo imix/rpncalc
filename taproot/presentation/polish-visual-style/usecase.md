@@ -40,6 +40,7 @@ User (CLI power user)
 - Outer border carries the app title in bold cyan
 - A horizontal separator divides content from the status bar
 - No panel is visually inconsistent with any other
+- Panel content has 1-column left padding from the inner border edge
 
 ## Error Conditions
 - **Terminal < 6 rows**: nothing is rendered (existing guard; no style applied)
@@ -95,10 +96,15 @@ stateDiagram-v2
 - When the TUI renders
 - Then nothing is rendered (buffer remains blank)
 
+**AC-7: Inner content padding**
+- Given rpncalc is running with panels visible
+- When the TUI renders
+- Then there is at least 1 character of horizontal padding between each panel border and its content
+
 ## Implementations <!-- taproot-managed -->
 - [Visual Polish TUI](./tui/impl.md)
 
 ## Status
-- **State:** implemented
+- **State:** specified
 - **Created:** 2026-03-24
 - **Last reviewed:** 2026-03-24
