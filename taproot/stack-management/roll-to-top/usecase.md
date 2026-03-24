@@ -162,6 +162,9 @@ stateDiagram-v2
   the user must rely on rotate (`r`) sequences or undo/redo to expose
   deeply buried items.
 
+## Implementations <!-- taproot-managed -->
+- [Roll to Top TUI](./tui/impl.md)
+
 ## Status
 - **State:** specified
 - **Created:** 2026-03-24
