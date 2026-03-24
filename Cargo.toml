@@ -2,6 +2,22 @@
 name = "rpncalc"
 version = "0.1.0"
 edition = "2021"
+description = "An HP48-style RPN calculator for the terminal"
+license = "MIT"
+repository = "https://github.com/OWNER/rpncalc"
+
+# cargo-dist release configuration
+[workspace.metadata.dist]
+cargo-dist-version = "0.22.1"
+ci = ["github"]
+installers = ["shell", "homebrew"]
+tap = "OWNER/homebrew-tap"
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin",
+    "x86_64-apple-darwin",
+]
+publish-jobs = []  # crates.io publishing disabled; set to ["cargo"] to enable
 
 [dependencies]
 ratatui = "0.29"

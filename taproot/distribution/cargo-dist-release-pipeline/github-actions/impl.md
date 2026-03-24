@@ -32,6 +32,6 @@ This is a CI/CD pipeline configuration. All ACs are integration tests verified a
 ## DoR Resolutions
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-24
 - **Last verified:** 2026-03-24

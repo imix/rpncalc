@@ -1,0 +1,160 @@
+# Release workflow — equivalent to `cargo dist init` output for cargo-dist v0.22.x
+# To regenerate: install cargo-dist and run `cargo dist init`
+# To upgrade cargo-dist: bump the version in the two installer URLs below
+
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+jobs:
+  # ── Plan ──────────────────────────────────────────────────────────────────
+  # Validates the tag matches Cargo.toml version and produces the build matrix.
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.plan.outputs.tag }}
+      publishing: ${{ startsWith(github.ref, 'refs/tags/') }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install cargo-dist
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/axodotdev/cargo-dist/releases/download/v0.22.1/cargo-dist-installer.sh \
+            | sh
+
+      - id: plan
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          cargo dist plan --tag="${TAG}" --output-format=json
+
+  # ── Build ─────────────────────────────────────────────────────────────────
+  # Builds a native binary for each target platform.
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    needs: plan
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: ubuntu-22.04
+            archive: rpncalc-${{ needs.plan.outputs.tag }}-x86_64-unknown-linux-gnu
+          - target: aarch64-apple-darwin
+            runner: macos-14
+            archive: rpncalc-${{ needs.plan.outputs.tag }}-aarch64-apple-darwin
+          - target: x86_64-apple-darwin
+            runner: macos-13
+            archive: rpncalc-${{ needs.plan.outputs.tag }}-x86_64-apple-darwin
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Rust stable
+        run: rustup update stable --no-self-update && rustup target add ${{ matrix.target }}
+
+      - name: Install cargo-dist
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/axodotdev/cargo-dist/releases/download/v0.22.1/cargo-dist-installer.sh \
+            | sh
+
+      - name: Build binary
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+          mkdir -p staging
+          cp target/${{ matrix.target }}/release/rpncalc staging/
+          cd staging
+          tar czf ../${{ matrix.archive }}.tar.gz rpncalc
+          cd ..
+          shasum -a 256 ${{ matrix.archive }}.tar.gz > ${{ matrix.archive }}.tar.gz.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.target }}
+          path: |
+            ${{ matrix.archive }}.tar.gz
+            ${{ matrix.archive }}.tar.gz.sha256
+
+  # ── Publish ───────────────────────────────────────────────────────────────
+  # Creates the GitHub Release and uploads all archives + installer script.
+  publish-release:
+    name: publish-release
+    runs-on: ubuntu-latest
+    needs: [plan, build]
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: artifacts-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Install cargo-dist (for installer script)
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/axodotdev/cargo-dist/releases/download/v0.22.1/cargo-dist-installer.sh \
+            | sh
+
+      - name: Generate installer script
+        run: cargo dist generate --artifacts=installers --output-dir=artifacts
+
+      - name: Create GitHub Release
+        run: |
+          gh release create ${{ needs.plan.outputs.tag }} \
+            --title "${{ needs.plan.outputs.tag }}" \
+            --draft \
+            artifacts/*
+
+      - name: Publish release
+        run: gh release edit ${{ needs.plan.outputs.tag }} --draft=false
+
+  # ── Homebrew ──────────────────────────────────────────────────────────────
+  # Updates the Homebrew formula in the tap repository.
+  # Skipped if tap is not configured (first release) — set HOMEBREW_TAP in
+  # repository secrets to enable (format: "OWNER/homebrew-tap").
+  publish-homebrew-formula:
+    name: publish-homebrew-formula
+    runs-on: ubuntu-latest
+    needs: [plan, publish-release]
+    if: ${{ vars.HOMEBREW_TAP != '' }}
+    env:
+      GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-dist
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf \
+            https://github.com/axodotdev/cargo-dist/releases/download/v0.22.1/cargo-dist-installer.sh \
+            | sh
+
+      - name: Publish Homebrew formula
+        run: |
+          cargo dist generate \
+            --artifacts=homebrew \
+            --tag=${{ needs.plan.outputs.tag }}
+        env:
+          HOMEBREW_TAP: ${{ vars.HOMEBREW_TAP }}
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
