@@ -3,23 +3,29 @@
 An HP48-style RPN calculator for the terminal. Stack-based, keyboard-driven, no mouse required.
 
 ```
-╭─ Stack ──────────────────╮ ╭─ Hints ──────────────────╮
-│  4:                      │ │ ARITHMETIC                │
-│  3:                      │ │ +  add    -  sub          │
-│  2:             3.14159… │ │ *  mul    /  div          │
-│  1:            42        │ │ ^  pow    !  fact         │
-╰──────────────────────────╯ │ %  mod    n  neg          │
-╭─ Input ──────────────────╮ │                           │
-│                          │ │ STACK                     │
-╰──────────────────────────╯ │ s  swap   d  drop         │
-[NORMAL]            RAD DEC  │ p  dup    r  rot          │
-                             │ u  undo   y  yank         │
-                             │ S  store                  │
-                             │                           │
-                             │ t› trig   l› log          │
-                             │ f› fn     c› const        │
-                             │ m› mode   x› base         │
-                             ╰──────────────────────────╯
+╭─ rpncalc ──────────────────────────────────────────────╮
+│╭─ Stack ────────────────╮╭─ Hints ───────────────────╮│
+││  4:                    ││ ARITHMETIC                 ││
+││  3:                    ││ +  add    -  sub           ││
+││  2:          3.14159…  ││ *  mul    /  div           ││
+││  1:               42   ││ ^  pow    %  mod           ││
+││                        ││ !  fact   n  neg           ││
+││                        ││                            ││
+││                        ││ STACK                      ││
+││                        ││ s  swap   d  drop          ││
+││                        ││ p  dup    r  rot           ││
+││                        ││ u  undo   y  yank          ││
+││                        ││ S  store                   ││
+││                        ││                            ││
+││                        ││ t› trig   l› log           ││
+││                        ││ f› fn     c› const         ││
+││                        ││ m› mode   x› base          ││
+│╰────────────────────────╯╰───────────────────────────╯│
+│>                                                       │
+│                                                        │
+│────────────────────────────────────────────────────────│
+│[NORMAL]                                      RAD  DEC  │
+╰────────────────────────────────────────────────────────╯
 ```
 
 ## Install
