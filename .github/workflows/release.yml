@@ -133,7 +133,7 @@ jobs:
   # ── Homebrew ──────────────────────────────────────────────────────────────
   # Updates the Homebrew formula in the tap repository.
   # Skipped if tap is not configured (first release) — set HOMEBREW_TAP in
-  # repository secrets to enable (format: "OWNER/homebrew-tap").
+  # repository secrets to enable (format: "imix/homebrew-tap").
   publish-homebrew-formula:
     name: publish-homebrew-formula
     runs-on: ubuntu-latest

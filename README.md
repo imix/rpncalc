@@ -27,13 +27,13 @@ An HP48-style RPN calculator for the terminal. Stack-based, keyboard-driven, no 
 ### macOS — Homebrew
 
 ```sh
-brew install OWNER/tap/rpncalc
+brew install imix/tap/rpncalc
 ```
 
 Or if you have already tapped the repository:
 
 ```sh
-brew tap OWNER/tap
+brew tap imix/tap
 brew install rpncalc
 ```
 
@@ -41,7 +41,7 @@ brew install rpncalc
 
 ```sh
 curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/OWNER/rpncalc/releases/latest/download/rpncalc-installer.sh | sh
+  https://github.com/imix/rpncalc/releases/latest/download/rpncalc-installer.sh | sh
 ```
 
 The installer places `rpncalc` in `~/.cargo/bin/`. If that directory is not on your `PATH`, add this line to your shell profile (`.bashrc`, `.zshrc`, etc.):
@@ -285,7 +285,7 @@ The stack, registers, angle mode, and base are saved when you quit and restored 
 ## Building from Source
 
 ```sh
-git clone https://github.com/OWNER/rpncalc
+git clone https://github.com/imix/rpncalc
 cd rpncalc
 cargo build --release
 ./target/release/rpncalc
