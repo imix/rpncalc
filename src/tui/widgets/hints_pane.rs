@@ -1,8 +1,8 @@
 use ratatui::{
     layout::Rect,
-    style::{Modifier, Style},
+    style::{Color, Modifier, Style},
     text::Line,
-    widgets::Paragraph,
+    widgets::{Block, BorderType, Paragraph},
     Frame,
 };
 
@@ -109,6 +109,14 @@ fn registers_to_lines(state: &CalcState, max_width: usize) -> Vec<Line<'static>>
 }
 
 pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .title("Hints")
+        .title_style(Style::default().fg(Color::Cyan));
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    let area = inner;
     let dim = Style::default().add_modifier(Modifier::DIM);
 
     if matches!(mode, AppMode::AlphaStore(_)) {

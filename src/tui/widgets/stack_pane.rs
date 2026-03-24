@@ -2,14 +2,17 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Paragraph},
+    widgets::{Block, BorderType, Paragraph},
     Frame,
 };
 
 use crate::engine::stack::CalcState;
 
 pub fn render(f: &mut Frame, area: Rect, state: &CalcState, precision: usize) {
-    let block = Block::bordered().title("Stack");
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .title("Stack")
+        .title_style(Style::default().fg(Color::Cyan));
     let inner = block.inner(area);
     f.render_widget(block, area);
 

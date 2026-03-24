@@ -32,6 +32,9 @@
 - `src/tui/widgets/hints_pane.rs` — new bordered block test
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-24
 - **Last verified:** 2026-03-24
+
+## DoD Resolutions
+- condition: baseline-usecase-exists | note: usecase.md exists at taproot/presentation/polish-visual-style/usecase.md — tool path resolution quirk | resolved: 2026-03-24T19:21:45.924Z
