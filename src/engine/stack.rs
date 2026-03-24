@@ -79,6 +79,19 @@ impl CalcState {
         Ok(())
     }
 
+    /// Roll the item at 1-indexed position `n` from the top to the top.
+    /// Position 1 = top (no-op equivalent); position 2 = swap equivalent.
+    /// Requires n ≥ 2 and stack depth ≥ 2.
+    pub fn roll(&mut self, n: usize) -> Result<(), CalcError> {
+        if self.stack.len() < 2 || n < 2 || n > self.stack.len() {
+            return Err(CalcError::StackUnderflow);
+        }
+        let idx = self.stack.len() - n;
+        let val = self.stack.remove(idx);
+        self.stack.push(val);
+        Ok(())
+    }
+
     pub fn clear(&mut self) {
         self.stack.clear();
     }
@@ -316,5 +329,71 @@ mod tests {
         let mut s = CalcState::new();
         s.clear(); // must not panic or error
         assert!(s.is_empty());
+    }
+
+    // ── roll ─────────────────────────────────────────────────────────────────
+
+    // AC-1: roll(2) on [a, b, c] — brings position 2 (b) to top → [a, c, b]
+    #[test]
+    fn test_roll_position2_equivalent_to_swap() {
+        let mut s = CalcState::new();
+        s.push(int(1)); // position 3
+        s.push(int(2)); // position 2
+        s.push(int(3)); // position 1 (top)
+        s.roll(2).unwrap();
+        assert_eq!(s.depth(), 3);
+        assert_eq!(s.peek(), Some(&int(2)));   // old pos 2 is now top
+        assert_eq!(s.stack[1], int(3));        // old top is now pos 2
+        assert_eq!(s.stack[0], int(1));        // deep item unchanged
+    }
+
+    // AC-1: roll(3) on [a, b, c, d] — brings position 3 (b) to top → [a, c, d, b]
+    #[test]
+    fn test_roll_position3() {
+        let mut s = CalcState::new();
+        s.push(int(1)); // pos 4
+        s.push(int(2)); // pos 3 — will roll to top
+        s.push(int(3)); // pos 2
+        s.push(int(4)); // pos 1 (top)
+        s.roll(3).unwrap();
+        assert_eq!(s.depth(), 4);
+        assert_eq!(s.peek(), Some(&int(2)));   // rolled item at top
+        assert_eq!(s.stack[2], int(4));        // old top shifted to pos 2
+        assert_eq!(s.stack[1], int(3));        // shifted to pos 3
+        assert_eq!(s.stack[0], int(1));        // below roll depth: unchanged
+    }
+
+    // AC-1 postconditions: depth unchanged, items below roll depth untouched
+    #[test]
+    fn test_roll_depth_unchanged() {
+        let mut s = CalcState::new();
+        for i in 1..=5 { s.push(int(i)); }
+        s.roll(3).unwrap();
+        assert_eq!(s.depth(), 5);
+    }
+
+    // AC-7: underflow on empty stack
+    #[test]
+    fn test_roll_underflow_empty() {
+        let mut s = CalcState::new();
+        assert!(matches!(s.roll(2), Err(CalcError::StackUnderflow)));
+    }
+
+    // AC-7: underflow with only 1 item
+    #[test]
+    fn test_roll_underflow_one_item() {
+        let mut s = CalcState::new();
+        s.push(int(42));
+        assert!(matches!(s.roll(2), Err(CalcError::StackUnderflow)));
+        assert_eq!(s.depth(), 1); // unchanged
+    }
+
+    // roll(n > depth) is also an underflow
+    #[test]
+    fn test_roll_position_beyond_depth() {
+        let mut s = CalcState::new();
+        s.push(int(1));
+        s.push(int(2));
+        assert!(matches!(s.roll(5), Err(CalcError::StackUnderflow)));
     }
 }

@@ -132,6 +132,19 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
         return;
     }
 
+    if matches!(mode, AppMode::Browse(_)) {
+        let lines = vec![
+            Line::styled("BROWSE", dim),
+            Line::raw(""),
+            Line::raw("Enter  roll to top"),
+            Line::raw("Esc    cancel"),
+            Line::raw("↑      deeper"),
+            Line::raw("↓      toward top"),
+        ];
+        f.render_widget(Paragraph::new(lines), area);
+        return;
+    }
+
     if matches!(mode, AppMode::Insert(_)) {
         let lines = vec![
             Line::raw("Enter  push"),
@@ -558,6 +571,17 @@ mod tests {
         let content = full_content(&buf);
         assert!(!content.contains("ARITHMETIC"));
         assert!(!content.contains("STACK"));
+    }
+
+    // AC-9: Browse mode shows navigation hint panel
+    #[test]
+    fn test_browse_mode_shows_hints() {
+        let buf = render_hints(AppMode::Browse(2), CalcState::new(), 40, 10);
+        let content = full_content(&buf);
+        assert!(content.contains("roll"), "Browse mode should show 'roll to top' hint");
+        assert!(content.contains("cancel"), "Browse mode should show 'cancel' hint");
+        assert!(!content.contains("ARITHMETIC"), "Browse mode should not show normal mode hints");
+        assert!(!content.contains("STACK"), "Browse mode should not show stack ops section");
     }
 
     // AlphaStore mode does NOT show register section

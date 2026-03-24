@@ -259,6 +259,49 @@ impl App {
                 self.mode = AppMode::Normal;
                 self.error_message = Some("Unknown chord key".into());
             }
+            Action::EnterBrowseMode => {
+                if self.state.stack.len() < 2 {
+                    self.error_message =
+                        Some("stack underflow: roll requires at least 2 items".into());
+                } else {
+                    self.mode = AppMode::Browse(2);
+                    self.error_message = None;
+                }
+            }
+            Action::BrowseCursorUp => {
+                if let AppMode::Browse(pos) = &mut self.mode {
+                    let max_pos = self.state.stack.len();
+                    if *pos < max_pos {
+                        *pos += 1;
+                    }
+                }
+            }
+            Action::BrowseCursorDown => {
+                if let AppMode::Browse(pos) = &mut self.mode {
+                    if *pos > 2 {
+                        *pos -= 1;
+                    }
+                }
+            }
+            Action::BrowseConfirm => {
+                if let AppMode::Browse(pos) = self.mode {
+                    self.mode = AppMode::Normal;
+                    let pre_op = self.state.clone();
+                    match self.state.roll(pos) {
+                        Ok(()) => {
+                            self.undo_history.snapshot(&pre_op);
+                            self.error_message = None;
+                        }
+                        Err(e) => {
+                            self.error_message = Some(e.to_string());
+                        }
+                    }
+                }
+            }
+            Action::BrowseCancel => {
+                self.mode = AppMode::Normal;
+                self.error_message = None;
+            }
             Action::Yank => match self.state.stack.last() {
                 None => {
                     self.error_message = Some("Stack is empty".into());
@@ -359,7 +402,12 @@ impl App {
             | Action::EnterChordMode(_)
             | Action::ChordCancel
             | Action::ChordInvalid
-            | Action::Yank => unreachable!("handled in apply()"),
+            | Action::Yank
+            | Action::EnterBrowseMode
+            | Action::BrowseCursorUp
+            | Action::BrowseCursorDown
+            | Action::BrowseConfirm
+            | Action::BrowseCancel => unreachable!("handled in apply()"),
         }
     }
 }
@@ -1255,5 +1303,125 @@ mod tests {
             1,
             "undo should restore the value present before reset"
         );
+    }
+
+    // ── Browse mode (roll-to-top) ────────────────────────────────────────────
+
+    // AC-7: ↑ with ≤1 item → error, not Browse mode
+    #[test]
+    fn test_enter_browse_empty_stack_errors() {
+        let mut app = App::new();
+        app.apply(Action::EnterBrowseMode);
+        assert!(app.error_message.is_some(), "should show error on empty stack");
+        assert_eq!(app.mode, AppMode::Normal);
+    }
+
+    #[test]
+    fn test_enter_browse_one_item_errors() {
+        let mut app = App::new();
+        push_int(&mut app, 1);
+        app.apply(Action::EnterBrowseMode);
+        assert!(app.error_message.is_some());
+        assert_eq!(app.mode, AppMode::Normal);
+    }
+
+    // Entry with ≥2 items → Browse mode at cursor position 2
+    #[test]
+    fn test_enter_browse_two_items_succeeds() {
+        let mut app = App::new();
+        push_int(&mut app, 1);
+        push_int(&mut app, 2);
+        app.apply(Action::EnterBrowseMode);
+        assert_eq!(app.mode, AppMode::Browse(2));
+        assert!(app.error_message.is_none());
+    }
+
+    // AC-3: cursor moves deeper with BrowseCursorUp
+    #[test]
+    fn test_browse_cursor_up_increments() {
+        let mut app = App::new();
+        for i in 1..=4 { push_int(&mut app, i); }
+        app.apply(Action::EnterBrowseMode); // cursor at 2
+        app.apply(Action::BrowseCursorUp);
+        assert_eq!(app.mode, AppMode::Browse(3));
+        app.apply(Action::BrowseCursorUp);
+        assert_eq!(app.mode, AppMode::Browse(4));
+    }
+
+    // AC-5: cursor clamped at depth
+    #[test]
+    fn test_browse_cursor_up_clamped_at_depth() {
+        let mut app = App::new();
+        push_int(&mut app, 1);
+        push_int(&mut app, 2);
+        app.apply(Action::EnterBrowseMode); // cursor at 2 (= depth)
+        app.apply(Action::BrowseCursorUp);  // already at max
+        assert_eq!(app.mode, AppMode::Browse(2));
+    }
+
+    // AC-4: cursor moves toward top with BrowseCursorDown
+    #[test]
+    fn test_browse_cursor_down_decrements() {
+        let mut app = App::new();
+        for i in 1..=4 { push_int(&mut app, i); }
+        app.apply(Action::EnterBrowseMode);
+        app.apply(Action::BrowseCursorUp); // cursor at 3
+        app.apply(Action::BrowseCursorDown);
+        assert_eq!(app.mode, AppMode::Browse(2));
+    }
+
+    // AC-6: cursor clamped at position 2
+    #[test]
+    fn test_browse_cursor_down_clamped_at_2() {
+        let mut app = App::new();
+        push_int(&mut app, 1);
+        push_int(&mut app, 2);
+        app.apply(Action::EnterBrowseMode); // cursor at 2
+        app.apply(Action::BrowseCursorDown); // already at min
+        assert_eq!(app.mode, AppMode::Browse(2));
+    }
+
+    // AC-1: BrowseConfirm rolls cursor item to top
+    #[test]
+    fn test_browse_confirm_rolls_item_to_top() {
+        let mut app = App::new();
+        push_int(&mut app, 1); // pos 3
+        push_int(&mut app, 2); // pos 2
+        push_int(&mut app, 3); // pos 1 (top)
+        app.apply(Action::EnterBrowseMode); // cursor at 2
+        app.apply(Action::BrowseConfirm);
+        assert_eq!(app.mode, AppMode::Normal);
+        assert_eq!(app.state.depth(), 3);
+        // Item from pos 2 (value 2) is now at top
+        assert_eq!(app.state.peek(), Some(&CalcValue::Integer(IBig::from(2))));
+    }
+
+    // AC-2: BrowseCancel exits without mutation
+    #[test]
+    fn test_browse_cancel_preserves_stack() {
+        let mut app = App::new();
+        push_int(&mut app, 10);
+        push_int(&mut app, 20);
+        let before = app.state.stack.clone();
+        app.apply(Action::EnterBrowseMode);
+        app.apply(Action::BrowseCursorUp);
+        app.apply(Action::BrowseCancel);
+        assert_eq!(app.mode, AppMode::Normal);
+        assert_eq!(app.state.stack, before);
+    }
+
+    // AC-12: roll is undo-able
+    #[test]
+    fn test_browse_roll_is_undoable() {
+        let mut app = App::new();
+        push_int(&mut app, 1);
+        push_int(&mut app, 2);
+        push_int(&mut app, 3);
+        let before = app.state.stack.clone();
+        app.apply(Action::EnterBrowseMode);
+        app.apply(Action::BrowseConfirm); // rolls pos 2 to top
+        assert_ne!(app.state.stack, before);
+        app.apply(Action::Undo);
+        assert_eq!(app.state.stack, before, "undo should restore pre-roll state");
     }
 }

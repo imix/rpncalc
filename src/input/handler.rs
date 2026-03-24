@@ -37,6 +37,7 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Char('x') => Action::EnterChordMode(ChordCategory::Base),
             KeyCode::Char('X') => Action::EnterChordMode(ChordCategory::HexStyle),
             KeyCode::Char('S') => Action::EnterStoreMode,
+            KeyCode::Up => Action::EnterBrowseMode,
             KeyCode::Enter => Action::Execute(Op::Dup),
             KeyCode::Esc => Action::Noop,
             _ => Action::Noop,
@@ -77,6 +78,13 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Esc => Action::AlphaCancel,
             KeyCode::Backspace => Action::AlphaBackspace,
             KeyCode::Char(c) => Action::AlphaChar(c),
+            _ => Action::Noop,
+        },
+        AppMode::Browse(_) => match event.code {
+            KeyCode::Up => Action::BrowseCursorUp,
+            KeyCode::Down => Action::BrowseCursorDown,
+            KeyCode::Enter => Action::BrowseConfirm,
+            KeyCode::Esc => Action::BrowseCancel,
             _ => Action::Noop,
         },
     }
@@ -609,5 +617,69 @@ mod tests {
             handle_key(&AppMode::AlphaStore("".into()), key(KeyCode::F(1))),
             Action::Noop
         );
+    }
+
+    // Browse mode entry: ↑ in Normal → EnterBrowseMode
+    #[test]
+    fn test_normal_up_enters_browse_mode() {
+        assert_eq!(
+            handle_key(&AppMode::Normal, key(KeyCode::Up)),
+            Action::EnterBrowseMode
+        );
+    }
+
+    // AC-3: ↑ in Browse → BrowseCursorUp
+    #[test]
+    fn test_browse_up_is_cursor_up() {
+        assert_eq!(
+            handle_key(&AppMode::Browse(2), key(KeyCode::Up)),
+            Action::BrowseCursorUp
+        );
+    }
+
+    // AC-4: ↓ in Browse → BrowseCursorDown
+    #[test]
+    fn test_browse_down_is_cursor_down() {
+        assert_eq!(
+            handle_key(&AppMode::Browse(3), key(KeyCode::Down)),
+            Action::BrowseCursorDown
+        );
+    }
+
+    // AC-1: Enter in Browse → BrowseConfirm
+    #[test]
+    fn test_browse_enter_confirms() {
+        assert_eq!(
+            handle_key(&AppMode::Browse(2), key(KeyCode::Enter)),
+            Action::BrowseConfirm
+        );
+    }
+
+    // AC-2: Esc in Browse → BrowseCancel
+    #[test]
+    fn test_browse_esc_cancels() {
+        assert_eq!(
+            handle_key(&AppMode::Browse(2), key(KeyCode::Esc)),
+            Action::BrowseCancel
+        );
+    }
+
+    // AC-11: unrecognised keys in Browse → Noop (silently consumed)
+    #[test]
+    fn test_browse_unrecognised_keys_are_noop() {
+        let unknown_keys = [
+            KeyCode::Char('a'),
+            KeyCode::Char('+'),
+            KeyCode::F(1),
+            KeyCode::Backspace,
+        ];
+        for code in &unknown_keys {
+            assert_eq!(
+                handle_key(&AppMode::Browse(2), key(*code)),
+                Action::Noop,
+                "key {:?} in Browse mode should be Noop",
+                code
+            );
+        }
     }
 }

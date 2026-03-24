@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::engine::stack::CalcState;
 
-pub fn render(f: &mut Frame, area: Rect, state: &CalcState, precision: usize) {
+pub fn render(f: &mut Frame, area: Rect, state: &CalcState, precision: usize, browse_cursor: Option<usize>) {
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .title("Stack")
@@ -46,16 +46,10 @@ pub fn render(f: &mut Frame, area: Rect, state: &CalcState, precision: usize) {
         lines.push(Line::from(vec![label_span]));
     }
 
-    // Value rows: oldest-visible (top) → newest/X (bottom)
+    // Value rows: oldest-visible (top) → newest/position-1 (bottom)
     for (i, val) in visible_slice.iter().enumerate() {
         let position_from_bottom = visible_count - 1 - i;
-
-        let label = format!("{}", position_from_bottom + 1);
-
-        let label_span = Span::styled(
-            format!("{:>lw$}: ", label, lw = label_col_width - 1),
-            Style::default().add_modifier(Modifier::DIM),
-        );
+        let stack_position = position_from_bottom + 1; // 1-indexed from top
 
         let val_str = val.display_with_precision(state.base, precision);
         let char_count = val_str.chars().count();
@@ -69,18 +63,31 @@ pub fn render(f: &mut Frame, area: Rect, state: &CalcState, precision: usize) {
             format!("{:>width$}", val_str, width = val_col_width)
         };
 
-        let val_style = if position_from_bottom == 0 {
-            Style::default()
-                .add_modifier(Modifier::BOLD)
-                .fg(Color::Cyan)
+        let label_text = format!("{:>lw$}: ", stack_position, lw = label_col_width - 1);
+
+        let line = if browse_cursor == Some(stack_position) {
+            // Cursor row: whole row inverted (label + value both REVERSED)
+            Line::from(vec![
+                Span::styled(label_text, Style::default().add_modifier(Modifier::REVERSED)),
+                Span::styled(val_display, Style::default().add_modifier(Modifier::REVERSED)),
+            ])
+        } else if position_from_bottom == 0 {
+            // Top of stack: bold cyan value, dim label
+            Line::from(vec![
+                Span::styled(label_text, Style::default().add_modifier(Modifier::DIM)),
+                Span::styled(
+                    val_display,
+                    Style::default().add_modifier(Modifier::BOLD).fg(Color::Cyan),
+                ),
+            ])
         } else {
-            Style::default()
+            Line::from(vec![
+                Span::styled(label_text, Style::default().add_modifier(Modifier::DIM)),
+                Span::raw(val_display),
+            ])
         };
 
-        lines.push(Line::from(vec![
-            label_span,
-            Span::styled(val_display, val_style),
-        ]));
+        lines.push(line);
     }
 
     f.render_widget(Paragraph::new(lines), inner);
@@ -94,9 +101,20 @@ mod tests {
     use ratatui::{backend::TestBackend, Terminal};
 
     fn render_pane(state: &CalcState, width: u16, height: u16) -> ratatui::buffer::Buffer {
+        render_pane_with_cursor(state, width, height, None)
+    }
+
+    fn render_pane_with_cursor(
+        state: &CalcState,
+        width: u16,
+        height: u16,
+        browse_cursor: Option<usize>,
+    ) -> ratatui::buffer::Buffer {
         let backend = TestBackend::new(width, height);
         let mut terminal = Terminal::new(backend).unwrap();
-        terminal.draw(|f| render(f, f.area(), state, 15)).unwrap();
+        terminal
+            .draw(|f| render(f, f.area(), state, 15, browse_cursor))
+            .unwrap();
         terminal.backend().buffer().clone()
     }
 
@@ -324,6 +342,37 @@ mod tests {
             bottom.contains("3.1"),
             "float 3.14 should display as decimal starting with '3.1': {:?}",
             bottom
+        );
+    }
+
+    // AC-10: browse cursor row has REVERSED modifier
+    #[test]
+    fn test_browse_cursor_row_has_reversed_modifier() {
+        let mut state = CalcState::new();
+        push_int(&mut state, 10); // pos 2
+        push_int(&mut state, 20); // pos 1 (top)
+        // 20×4: border at rows 0,3; inner height=2; pos1 at row2, pos2 at row1
+        // With cursor at position 2 (row 1), that cell should have REVERSED
+        let buf = render_pane_with_cursor(&state, 20, 4, Some(2));
+        let cell = buf.cell((5u16, 1u16)).unwrap(); // col 5 = first value char
+        assert!(
+            cell.modifier.contains(Modifier::REVERSED),
+            "cursor row should have REVERSED modifier"
+        );
+    }
+
+    // AC-10: non-cursor rows do NOT have REVERSED modifier
+    #[test]
+    fn test_non_cursor_row_has_no_reversed_modifier() {
+        let mut state = CalcState::new();
+        push_int(&mut state, 10); // pos 2
+        push_int(&mut state, 20); // pos 1 (top)
+        // cursor at pos 2 (row 1) — pos 1 (row 2) should not be reversed
+        let buf = render_pane_with_cursor(&state, 20, 4, Some(2));
+        let cell = buf.cell((5u16, 2u16)).unwrap();
+        assert!(
+            !cell.modifier.contains(Modifier::REVERSED),
+            "non-cursor row should NOT have REVERSED modifier"
         );
     }
 }

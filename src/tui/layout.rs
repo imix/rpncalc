@@ -8,6 +8,7 @@ use ratatui::{
     Frame,
 };
 
+use crate::input::mode::AppMode;
 use crate::tui::{
     app::App,
     widgets::{error_line, hints_pane, input_line, mode_bar, stack_pane},
@@ -50,11 +51,17 @@ pub fn render(f: &mut Frame, app: &App) {
 
     // width is derived from inner_area (post-border, post-centering), so this threshold is always
     // evaluated against the capped content column width, not the raw terminal width.
+    let browse_cursor = if let AppMode::Browse(pos) = &app.mode {
+        Some(*pos)
+    } else {
+        None
+    };
+
     if width < 60 {
-        stack_pane::render(f, outer[0], &app.state, app.precision);
+        stack_pane::render(f, outer[0], &app.state, app.precision, browse_cursor);
     } else {
         let inner = Layout::horizontal([Percentage(50), Percentage(50)]).split(outer[0]);
-        stack_pane::render(f, inner[0], &app.state, app.precision);
+        stack_pane::render(f, inner[0], &app.state, app.precision, browse_cursor);
         hints_pane::render(f, inner[1], &app.mode, &app.state);
     }
 

@@ -33,6 +33,11 @@ pub enum Action {
     EnterChordMode(ChordCategory),
     ChordCancel,
     ChordInvalid,
+    EnterBrowseMode,
+    BrowseCursorUp,
+    BrowseCursorDown,
+    BrowseConfirm,
+    BrowseCancel,
     Quit,
     Noop,
 }

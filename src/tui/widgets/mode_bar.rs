@@ -17,6 +17,7 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
         AppMode::Normal | AppMode::Chord(_) => "[NORMAL]",
         AppMode::Insert(_) | AppMode::AlphaStore(_) => "[INSERT]",
         AppMode::Alpha(_) => "[ALPHA]",
+        AppMode::Browse(_) => "[BROWSE]",
     };
 
     let right_str = if state.base == Base::Hex {
@@ -232,5 +233,18 @@ mod tests {
         let buf = render_mode_bar(&AppMode::Normal, &state, 40);
         let cell = buf.cell((0u16, 0u16)).unwrap();
         assert_eq!(cell.fg, Color::Yellow, "mode bar text should be Yellow");
+    }
+
+    // AC-8: Browse mode shows [BROWSE]
+    #[test]
+    fn test_browse_mode_shows_browse() {
+        let state = CalcState::new();
+        let buf = render_mode_bar(&AppMode::Browse(2), &state, 40);
+        let content = row_content(&buf, 0);
+        assert!(
+            content.contains("[BROWSE]"),
+            "browse mode should show '[BROWSE]': {:?}",
+            content
+        );
     }
 }
