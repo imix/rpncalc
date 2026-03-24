@@ -11,6 +11,11 @@ on:
   push:
     tags:
       - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v0.1.0)'
+        required: true
 
 jobs:
   # ── Plan ──────────────────────────────────────────────────────────────────
@@ -20,7 +25,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.plan.outputs.tag }}
-      publishing: ${{ startsWith(github.ref, 'refs/tags/') }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -36,7 +40,7 @@ jobs:
 
       - id: plan
         run: |
-          TAG="${GITHUB_REF#refs/tags/}"
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           cargo dist plan --tag="${TAG}" --output-format=json
 
@@ -52,15 +56,13 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             runner: ubuntu-22.04
-            archive: rpncalc-${{ needs.plan.outputs.tag }}-x86_64-unknown-linux-gnu
           - target: aarch64-apple-darwin
             runner: macos-14
-            archive: rpncalc-${{ needs.plan.outputs.tag }}-aarch64-apple-darwin
           - target: x86_64-apple-darwin
             runner: macos-13
-            archive: rpncalc-${{ needs.plan.outputs.tag }}-x86_64-apple-darwin
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ARCHIVE: rpncalc-${{ needs.plan.outputs.tag }}-${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -81,17 +83,17 @@ jobs:
           mkdir -p staging
           cp target/${{ matrix.target }}/release/rpncalc staging/
           cd staging
-          tar czf ../${{ matrix.archive }}.tar.gz rpncalc
+          tar czf ../${{ env.ARCHIVE }}.tar.gz rpncalc
           cd ..
-          shasum -a 256 ${{ matrix.archive }}.tar.gz > ${{ matrix.archive }}.tar.gz.sha256
+          shasum -a 256 ${{ env.ARCHIVE }}.tar.gz > ${{ env.ARCHIVE }}.tar.gz.sha256
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: artifacts-${{ matrix.target }}
           path: |
-            ${{ matrix.archive }}.tar.gz
-            ${{ matrix.archive }}.tar.gz.sha256
+            ${{ env.ARCHIVE }}.tar.gz
+            ${{ env.ARCHIVE }}.tar.gz.sha256
 
   # ── Publish ───────────────────────────────────────────────────────────────
   # Creates the GitHub Release and uploads all archives + installer script.
