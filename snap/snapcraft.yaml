@@ -15,11 +15,18 @@ description: |
   - Context-sensitive hints pane
 
 grade: stable
-confinement: classic
+confinement: strict
+
+plugs:
+  rpnpad-config:
+    interface: personal-files
+    write:
+      - $HOME/.config/rpnpad
 
 apps:
   rpnpad:
     command: bin/rpnpad
+    plugs: [rpnpad-config]
 
 parts:
   rpnpad:
