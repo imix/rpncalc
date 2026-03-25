@@ -106,9 +106,9 @@ stateDiagram-v2
 - Then base switches to HEX, mode bar shows `HEX`, stack values redisplay in hex
 
 **AC-3: Notation switches to scientific**
-- Given Normal mode with a float on the stack (e.g. 12345.6789)
+- Given Normal mode with values on the stack (e.g. float 12345.6789 and integer 100)
 - When user presses `C` then `s`
-- Then notation mode is `sci` and the stack value redisplays in scientific notation
+- Then notation mode is `sci`, the float redisplays as `1.23456789e4`, and the integer redisplays as `1e2`
 
 **AC-4: Notation switches to fixed**
 - Given notation mode is `sci`
@@ -172,6 +172,11 @@ stateDiagram-v2
 - When stack contains 1.23456e12 (above threshold)
 - Then 1.23456e12 displays in scientific notation
 
+**AC-16: Auto notation applies sci threshold to integers**
+- Given notation mode is `auto`
+- When stack contains integer `10000000000` (≥ 1e10)
+- Then it displays as `1e10`; integers below the threshold display unchanged
+
 ## Implementations <!-- taproot-managed -->
 - [tui](./tui/impl.md)
 
@@ -187,4 +192,4 @@ stateDiagram-v2
 - **`m›`, `x›`, and `X›` removal**: `m`, `x`, and `X` in Normal mode become Noop after this behaviour is implemented. They may be repurposed in future; that decision is out of scope here.
 - **Precision input UX**: behaves like a mini Insert mode — up to 2 digits accumulate, `Enter` confirms, `Esc` cancels, `Backspace` deletes the last digit. Non-digit keypresses (other than Enter, Esc, Backspace) are silently ignored. The mode bar shows `[PREC]` to indicate the sub-mode. Empty-buffer `Enter` is a no-op (not an error).
 - **CalcState and session file schema**: `notation` is a new field on `CalcState` (not currently present). Implementing this behaviour requires: (1) adding `notation: Notation` to `CalcState`, (2) extending session serialization/deserialization to include `notation`, (3) adding a `notation` key to `config.toml` parsing (values: `"fixed"`, `"sci"`, `"auto"`; default: `"fixed"`). `precision` is already in `CalcState` and config.toml.
-- **Auto notation and integers**: `auto` (and `sci`) notation modes do not affect integer display. Integers always display in the active base without decimal or scientific notation, regardless of magnitude.
+- **Notation and integers**: when notation is `sci`, integers display in scientific notation using the natural exact representation (e.g. `100` → `1e2`, `1234` → `1.234e3`). Precision does not apply — integers are exact and no digits are truncated. When notation is `auto`, integers follow the same magnitude threshold as floats (`|value| ≥ 1e10`). When notation is `fixed`, integers are unaffected.
