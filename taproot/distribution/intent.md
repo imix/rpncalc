@@ -24,6 +24,8 @@ Enable users on Linux and macOS to install rpncalc with a single command — no 
 - [User installs rpncalc via Homebrew](./install-via-homebrew/usecase.md)
 - [User installs rpncalc via curl installer](./install-via-curl/usecase.md)
 - [User reads the project README to discover and learn rpncalc](./project-readme/usecase.md)
+- [User installs rpncalc via AUR](./install-via-aur/usecase.md)
+- [User installs rpncalc via Snap Store](./install-via-snap/usecase.md)
 
 ## Status
 - **State:** draft
@@ -32,4 +34,4 @@ Enable users on Linux and macOS to install rpncalc with a single command — no 
 
 ## Notes
 - cargo-dist is the primary vehicle: it generates GitHub Actions workflows, a Homebrew tap formula, and a shell installer from a single `cargo dist init` invocation
-- Out of scope: apt/deb/rpm packaging, AUR, Nix, Windows
+- Out of scope: apt/deb/rpm packaging, Nix, Windows

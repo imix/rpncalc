@@ -22,7 +22,7 @@ documentation, through a context-sensitive hints pane that adapts to
 calculator state.
 
 - **[browse-hints-pane](./discoverability/browse-hints-pane/usecase.md)** `[implemented]` — Actor: User (CLI power user)
-  - [tui](./discoverability/browse-hints-pane/tui/impl.md) `[complete]` (1 commit, 2 tests)
+  - [tui](./discoverability/browse-hints-pane/tui/impl.md) `[complete]` (2 commits, 2 tests)
 - **[direct-common-functions](./discoverability/direct-common-functions/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./discoverability/direct-common-functions/tui/impl.md) `[complete]` (2 commits, 2 tests)
 - **[execute-chord-operation](./discoverability/execute-chord-operation/usecase.md)** `[implemented]` — Actor: User (CLI power user)
@@ -36,10 +36,12 @@ calculator state.
 
 - **[cargo-dist-release-pipeline](./distribution/cargo-dist-release-pipeline/usecase.md)** `[implemented]` — Actor: Maintainer (solo developer)
   - [github-actions](./distribution/cargo-dist-release-pipeline/github-actions/impl.md) `[complete]` (2 commits, 3 tests)
+- **[install-via-aur](./distribution/install-via-aur/usecase.md)** `[specified]` — Actor: CLI power user (Arch Linux or Arch-based distro — Manjaro, EndeavourOS, etc.)
 - **[install-via-curl](./distribution/install-via-curl/usecase.md)** `[implemented]` — Actor: CLI power user (Linux or macOS)
   - [cargo-dist](./distribution/install-via-curl/cargo-dist/impl.md) `[complete]` (2 commits, 5 tests)
 - **[install-via-homebrew](./distribution/install-via-homebrew/usecase.md)** `[implemented]` — Actor: CLI power user (macOS)
   - [homebrew-formula](./distribution/install-via-homebrew/homebrew-formula/impl.md) `[complete]` (2 commits, 5 tests)
+- **[install-via-snap](./distribution/install-via-snap/usecase.md)** `[specified]` — Actor: CLI power user (Ubuntu, Fedora, Debian, or any Linux distro with snapd installed)
 - **[project-readme](./distribution/project-readme/usecase.md)** `[implemented]` — Actor: Prospective user or new user (any platform, no rpncalc installed yet)
   - [readme](./distribution/project-readme/readme/impl.md) `[complete]` (2 commits ⚠ no tests)
 
@@ -71,7 +73,7 @@ without getting in the way of computation.
 medium for RPN computation.
 
 - **[arrange-stack-values](./stack-management/arrange-stack-values/usecase.md)** `[implemented]` — Actor: User (CLI power user)
-  - [tui](./stack-management/arrange-stack-values/tui/impl.md) `[complete]` (0 commits, 1 test)
+  - [tui](./stack-management/arrange-stack-values/tui/impl.md) `[complete]` (2 commits, 2 tests)
 - **[push-value](./stack-management/push-value/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./stack-management/push-value/tui/impl.md) `[complete]` (2 commits, 7 tests)
 - **[roll-to-top](./stack-management/roll-to-top/usecase.md)** `[implemented]` — Actor: User (CLI power user)
@@ -92,4 +94,4 @@ mistakes at any point, and store intermediate results in named registers.
   - [tui](./state-and-memory/undo-redo/tui/impl.md) `[complete]` (0 commits, 1 test)
 
 ---
-7 intents · 21 behaviours · 21 implementations · 21/21 complete
+7 intents · 23 behaviours · 21 implementations · 21/21 complete
