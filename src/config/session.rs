@@ -6,7 +6,7 @@ use std::{
 };
 
 pub fn session_path() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".rpncalc").join("session.json"))
+    dirs::home_dir().map(|h| h.join(".rpnpad").join("session.json"))
 }
 
 /// Core save — testable with injected path. Atomic: write temp then rename.
@@ -37,7 +37,7 @@ pub(crate) fn load_from_path(path: &Path) -> Result<Option<CalcState>, String> {
         .map_err(|e| format!("Session file corrupt: {}", e))
 }
 
-/// Save session to ~/.rpncalc/session.json using atomic write.
+/// Save session to ~/.rpnpad/session.json using atomic write.
 /// Respects Config::persist_session — no-op if false.
 /// Best-effort: callers use `let _ = session::save(...)`.
 pub fn save(state: &CalcState) -> Result<(), Box<dyn std::error::Error>> {
@@ -49,7 +49,7 @@ pub fn save(state: &CalcState) -> Result<(), Box<dyn std::error::Error>> {
     save_to_path(&path, state)
 }
 
-/// Load session from ~/.rpncalc/session.json.
+/// Load session from ~/.rpnpad/session.json.
 /// Returns Ok(None) if no session file exists (first launch) or persist_session is false.
 /// Returns Err(msg) if the file is present but corrupt — caller shows message.
 pub fn load() -> Result<Option<CalcState>, String> {
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn test_save_and_load_roundtrip() {
         let dir = std::env::temp_dir();
-        let path = dir.join("rpncalc_test_session.json");
+        let path = dir.join("rpnpad_test_session.json");
         let _ = std::fs::remove_file(&path);
 
         let state = state_with_value(42);
@@ -93,14 +93,14 @@ mod tests {
 
     #[test]
     fn test_load_returns_none_when_no_file() {
-        let path = std::env::temp_dir().join("rpncalc_nonexistent_session_4321.json");
+        let path = std::env::temp_dir().join("rpnpad_nonexistent_session_4321.json");
         let _ = std::fs::remove_file(&path);
         assert!(load_from_path(&path).unwrap().is_none());
     }
 
     #[test]
     fn test_load_returns_err_on_corrupt_file() {
-        let path = std::env::temp_dir().join("rpncalc_corrupt_session_4321.json");
+        let path = std::env::temp_dir().join("rpnpad_corrupt_session_4321.json");
         std::fs::write(&path, b"not valid json at all").unwrap();
         assert!(load_from_path(&path).is_err());
         let _ = std::fs::remove_file(&path);
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_save_creates_directory() {
-        let dir = std::env::temp_dir().join("rpncalc_test_dir_creation_4321");
+        let dir = std::env::temp_dir().join("rpnpad_test_dir_creation_4321");
         let _ = std::fs::remove_dir_all(&dir);
         let path = dir.join("session.json");
         let state = CalcState::new();
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn test_roundtrip_preserves_registers() {
         let dir = std::env::temp_dir();
-        let path = dir.join("rpncalc_test_registers_4321.json");
+        let path = dir.join("rpnpad_test_registers_4321.json");
         let _ = std::fs::remove_file(&path);
 
         let mut state = CalcState::new();

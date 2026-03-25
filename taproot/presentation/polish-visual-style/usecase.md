@@ -4,13 +4,13 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running with the TUI open
+- rpnpad is running with the TUI open
 - Terminal height ≥ 6 rows (below this, nothing is rendered — existing guard)
 
 ## Main Flow
-1. User launches rpncalc
+1. User launches rpnpad
 2. TUI renders an outer border with rounded corners (`╭╮╰╯`) and the app
-   title ` rpncalc ` in bold cyan in the top edge
+   title ` rpnpad ` in bold cyan in the top edge
 3. Stack panel renders inside the outer border with its own rounded bordered
    block titled `Stack` in cyan
 4. Hints panel (when terminal inner width ≥ 60 cols) renders alongside the
@@ -29,7 +29,7 @@ User (CLI power user)
 - **Outcome:** Layout remains visually consistent; only content is reduced
 
 ### Terminal resize
-- **Trigger:** User resizes the terminal while rpncalc is running
+- **Trigger:** User resizes the terminal while rpnpad is running
 - **Steps:**
   1. ratatui redraws on the next event tick
   2. Panels reflow to the new dimensions, applying the same style rules
@@ -67,37 +67,37 @@ stateDiagram-v2
 ## Acceptance Criteria
 
 **AC-1: Wide terminal — both panels consistently bordered**
-- Given rpncalc is running in a terminal with inner width ≥ 60 cols
+- Given rpnpad is running in a terminal with inner width ≥ 60 cols
 - When the TUI renders
 - Then both Stack and Hints panels display rounded bordered blocks with cyan titles
 
 **AC-2: Outer border has app title**
-- Given rpncalc is running
+- Given rpnpad is running
 - When the TUI renders
-- Then the outermost border displays `rpncalc` as a title in the top edge, styled bold cyan
+- Then the outermost border displays `rpnpad` as a title in the top edge, styled bold cyan
 
 **AC-3: Rounded corner style**
-- Given rpncalc is running
+- Given rpnpad is running
 - When the TUI renders
 - Then all borders use rounded corners (`╭ ╮ ╰ ╯`) instead of plain corners (`┌ ┐ └ ┘`)
 
 **AC-4: Horizontal separator above mode bar**
-- Given rpncalc is running
+- Given rpnpad is running
 - When the TUI renders
 - Then a full-width horizontal separator (`├────┤`) appears between the main content area and the mode bar row
 
 **AC-5: Narrow terminal — stack panel still consistently styled**
-- Given rpncalc is running in a terminal with inner width < 60 cols
+- Given rpnpad is running in a terminal with inner width < 60 cols
 - When the TUI renders
 - Then the Stack panel still renders with a rounded bordered block and cyan title (hints omitted, style intact)
 
 **AC-6: Minimum height guard preserved**
-- Given rpncalc is running in a terminal with height < 6 rows
+- Given rpnpad is running in a terminal with height < 6 rows
 - When the TUI renders
 - Then nothing is rendered (buffer remains blank)
 
 **AC-7: Inner content padding**
-- Given rpncalc is running with panels visible
+- Given rpnpad is running with panels visible
 - When the TUI renders
 - Then there is at least 1 character of horizontal padding between each panel border and its content
 

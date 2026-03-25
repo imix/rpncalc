@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in Normal mode
+- rpnpad is running in Normal mode
 - Stack has ≥1 item for FLOOR, CEIL, TRUNC, SIGN (unary)
 - Stack has ≥2 items for ROUND (binary: value at pos 2, integer precision at pos 1)
 

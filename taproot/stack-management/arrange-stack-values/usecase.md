@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 - Stack has sufficient depth for the chosen operation (≥1 for dup/drop,
   ≥2 for swap, ≥3 for rotate; clear works on any depth including empty)
 

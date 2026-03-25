@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 
 ## Main Flow
 1. User triggers a mode switch via chord:

@@ -1,9 +1,9 @@
-# rpncalc
+# rpnpad
 
 An HP48-style RPN calculator for the terminal. Stack-based, keyboard-driven, no mouse required.
 
 ```
-╭─ rpncalc ──────────────────────────────────────────────╮
+╭─ rpnpad ──────────────────────────────────────────────╮
 │╭─ Stack ────────────────╮╭─ Hints ───────────────────╮│
 ││  4:                    ││ ARITHMETIC                 ││
 ││  3:                    ││ +  add    -  sub           ││
@@ -33,23 +33,23 @@ An HP48-style RPN calculator for the terminal. Stack-based, keyboard-driven, no 
 ### macOS — Homebrew
 
 ```sh
-brew install imix/tap/rpncalc
+brew install imix/tap/rpnpad
 ```
 
 Or if you have already tapped the repository:
 
 ```sh
 brew tap imix/tap
-brew install rpncalc
+brew install rpnpad
 ```
 
 ### Linux and macOS — curl installer
 
 ```sh
-curl -fsSL https://github.com/imix/rpncalc/releases/latest/download/rpncalc-installer.sh | sh
+curl -fsSL https://github.com/imix/rpnpad/releases/latest/download/rpnpad-installer.sh | sh
 ```
 
-The installer places `rpncalc` in `~/.cargo/bin/`. If that directory is not on your `PATH`, add this line to your shell profile (`.bashrc`, `.zshrc`, etc.):
+The installer places `rpnpad` in `~/.cargo/bin/`. If that directory is not on your `PATH`, add this line to your shell profile (`.bashrc`, `.zshrc`, etc.):
 
 ```sh
 export PATH="$HOME/.cargo/bin:$PATH"
@@ -58,7 +58,7 @@ export PATH="$HOME/.cargo/bin:$PATH"
 ### From source — cargo
 
 ```sh
-cargo install rpncalc
+cargo install rpnpad
 ```
 
 Requires a Rust toolchain ([rustup.rs](https://rustup.rs)).
@@ -70,7 +70,7 @@ Requires a Rust toolchain ([rustup.rs](https://rustup.rs)).
 Launch the calculator:
 
 ```sh
-rpncalc
+rpnpad
 ```
 
 Push two numbers and add them:
@@ -86,7 +86,7 @@ Press `q` to quit.
 
 ## Stack Model
 
-rpncalc uses an RPN (Reverse Polish Notation) stack, in the style of the HP48 calculator.
+rpnpad uses an RPN (Reverse Polish Notation) stack, in the style of the HP48 calculator.
 
 - Values are **pushed** onto the stack; operations **consume** values from the top
 - **Position 1** is always the top of the stack (most recently pushed)
@@ -264,7 +264,7 @@ Active registers appear in the Hints pane for quick reference.
 
 ## Configuration
 
-Settings persist automatically between sessions (saved to `~/.config/rpncalc/state.json`).
+Settings persist automatically between sessions (saved to `~/.config/rpnpad/state.json`).
 
 ### Angle mode
 
@@ -287,17 +287,17 @@ When in hex mode, use `X` to switch the display style (`0xFF`, `$FF`, `#FF`, `FF
 
 ### Session persistence
 
-The stack, registers, angle mode, and base are saved when you quit and restored when you next launch rpncalc. No manual save step is required.
+The stack, registers, angle mode, and base are saved when you quit and restored when you next launch rpnpad. No manual save step is required.
 
 ---
 
 ## Building from Source
 
 ```sh
-git clone https://github.com/imix/rpncalc
-cd rpncalc
+git clone https://github.com/imix/rpnpad
+cd rpnpad
 cargo build --release
-./target/release/rpncalc
+./target/release/rpnpad
 ```
 
 Requires Rust stable (1.70+).
@@ -306,4 +306,4 @@ Requires Rust stable (1.70+).
 
 ## Built with Taproot
 
-rpncalc is developed using [Taproot](https://github.com/felixwatts/taproot) — a lightweight requirements traceability system that keeps behaviour specs, implementation records, and source code in sync. Every feature in rpncalc traces from a user-observable behaviour spec down to the commit that delivered it.
+rpnpad is developed using [Taproot](https://github.com/felixwatts/taproot) — a lightweight requirements traceability system that keeps behaviour specs, implementation records, and source code in sync. Every feature in rpnpad traces from a user-observable behaviour spec down to the commit that delivered it.

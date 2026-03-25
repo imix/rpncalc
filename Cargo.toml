@@ -1,11 +1,11 @@
 [package]
-name = "rpncalc"
+name = "rpnpad"
 version = "0.2.2"
 edition = "2021"
 description = "An HP48-style RPN calculator for the terminal"
 license = "MIT"
-repository = "https://github.com/imix/rpncalc"
-homepage = "https://github.com/imix/rpncalc"
+repository = "https://github.com/imix/rpnpad"
+homepage = "https://github.com/imix/rpnpad"
 
 # cargo-dist release configuration
 [workspace.metadata.dist]

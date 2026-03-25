@@ -5,7 +5,7 @@
 set -euo pipefail
 
 VERSION="${1:?Usage: $0 <version>}"
-ARCHIVE_URL="https://github.com/imix/rpncalc/releases/download/v${VERSION}/rpncalc-x86_64-unknown-linux-gnu.tar.gz"
+ARCHIVE_URL="https://github.com/imix/rpnpad/releases/download/v${VERSION}/rpnpad-x86_64-unknown-linux-gnu.tar.gz"
 
 echo "Fetching checksum for v${VERSION}..."
 SHA256=$(curl -sL "${ARCHIVE_URL}" | sha256sum | awk '{print $1}')

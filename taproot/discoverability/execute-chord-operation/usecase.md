@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 
 ## Main Flow
 1. User presses a chord leader key: `t` (trig), `l` (log/exp), `f` (functions),

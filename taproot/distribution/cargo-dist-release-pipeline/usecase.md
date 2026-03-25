@@ -41,7 +41,7 @@ Maintainer (solo developer)
 - A Homebrew formula in the tap repository references the new version, archive URL, and checksum
 - An `install.sh` installer script in the release assets installs the correct binary for the user's platform
 - GitHub has notified repository watchers that a new release has been published
-- `cargo install rpncalc` continues to resolve to the new version once published to crates.io (if crates.io publishing is enabled)
+- `cargo install rpnpad` continues to resolve to the new version once published to crates.io (if crates.io publishing is enabled)
 
 ## Error Conditions
 - **Tag version does not match `Cargo.toml` version**: cargo-dist validates the tag against the workspace version and fails the workflow before any release is created; maintainer must delete the tag, bump the version, and re-tag.

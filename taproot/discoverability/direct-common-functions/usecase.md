@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in Normal mode
+- rpnpad is running in Normal mode
 - Stack has ≥1 item (both operations are unary)
 
 ## Main Flow

@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 - For undo: at least one state-mutating operation has been performed this session
 - For redo: at least one undo has been performed since the last new operation
 

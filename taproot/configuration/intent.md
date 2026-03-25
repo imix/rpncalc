@@ -1,7 +1,7 @@
 # Intent: Configuration
 
 ## Goal
-Enable users to persist personal workflow defaults so rpncalc behaves
+Enable users to persist personal workflow defaults so rpnpad behaves
 correctly from the first keypress of every session.
 
 ## Stakeholders
@@ -13,17 +13,17 @@ correctly from the first keypress of every session.
 - All display and behaviour defaults (angle mode, base, precision,
   representation style, undo depth, session persistence) are configurable
   via config.toml
-- Missing or malformed config file is handled gracefully — rpncalc launches
+- Missing or malformed config file is handled gracefully — rpnpad launches
   with sensible defaults rather than erroring
 
 ## Constraints
-- Config file lives at `~/.rpncalc/config.toml` (XDG base dirs respected)
+- Config file lives at `~/.rpnpad/config.toml` (XDG base dirs respected)
 - Invalid individual field values silently fall back to defaults; the
   whole file need not be valid for valid fields to apply
 - Phase 2 unit conversion rules (`units.toml`) are out of scope
 
 ## Behaviours <!-- taproot-managed -->
-- [User configures rpncalc defaults via config.toml](./configure-defaults/usecase.md)
+- [User configures rpnpad defaults via config.toml](./configure-defaults/usecase.md)
 - [User configures display and calculation settings via C› chord](./configure-settings-chord/usecase.md)
 
 

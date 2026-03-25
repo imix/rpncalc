@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in any mode
+- rpnpad is running in any mode
 - At least one operation has been executed since the session started
 
 ## Main Flow
@@ -50,7 +50,7 @@ User (CLI power user)
 - **Outcome:** User sees which chord triggered the mode change; mode indicator on the right also updates
 
 ### Session start (no prior operation)
-- **Trigger:** rpncalc just launched; no key has been pressed yet
+- **Trigger:** rpnpad just launched; no key has been pressed yet
 - **Steps:** Mode bar shows no last-command indicator — centre is blank
 - **Outcome:** Mode bar looks identical to current behaviour until first operation
 
@@ -116,7 +116,7 @@ stateDiagram-v2
 - Then the mode bar centre shows `u → undo`
 
 **AC-6: Session start shows blank centre**
-- Given rpncalc has just launched and no key has been pressed
+- Given rpnpad has just launched and no key has been pressed
 - When the mode bar renders
 - Then the centre is blank (no last-command label)
 

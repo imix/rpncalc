@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 - Stack has ≥1 value
 - System clipboard is accessible (arboard)
 

@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 - Stack has sufficient depth (≥2 for binary ops, ≥1 for unary ops;
   constants require no operands)
 

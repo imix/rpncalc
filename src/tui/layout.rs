@@ -39,7 +39,7 @@ pub fn render(f: &mut Frame, app: &App) {
         .add_modifier(Modifier::BOLD);
     let border = Block::bordered()
         .border_type(BorderType::Rounded)
-        .title(" rpncalc ")
+        .title(" rpnpad ")
         .title_style(title_style);
     let inner_area = border.inner(content_area);
     f.render_widget(border, content_area);
@@ -184,8 +184,8 @@ mod tests {
         let buf = render_layout(80, 20);
         let content = full_content(&buf);
         assert!(
-            content.contains("rpncalc"),
-            "outer border should contain app title 'rpncalc': {:?}",
+            content.contains("rpnpad"),
+            "outer border should contain app title 'rpnpad': {:?}",
             &content[..80.min(content.len())]
         );
     }

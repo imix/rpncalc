@@ -1,4 +1,4 @@
-# Behaviour: User installs rpncalc via Homebrew
+# Behaviour: User installs rpnpad via Homebrew
 
 ## Actor
 CLI power user (macOS)
@@ -9,34 +9,34 @@ CLI power user (macOS)
 - The user has internet access
 
 ## Main Flow
-1. User runs `brew install OWNER/tap/rpncalc` (or `brew tap OWNER/tap` followed by `brew install rpncalc`).
+1. User runs `brew install OWNER/tap/rpnpad` (or `brew tap OWNER/tap` followed by `brew install rpnpad`).
 2. Homebrew downloads and parses the formula from the tap repository.
 3. Homebrew downloads the pre-built `.tar.gz` archive for the user's platform (aarch64 or x86\_64 macOS) from the GitHub Release.
 4. Homebrew verifies the archive's SHA-256 checksum against the formula.
 5. Homebrew installs the binary to the Homebrew prefix and links it onto PATH.
-6. User runs `rpncalc` and the calculator starts.
+6. User runs `rpnpad` and the calculator starts.
 
 ## Alternate Flows
 ### Tap already registered
 - **Trigger:** User has previously run `brew tap OWNER/tap`
 - **Steps:**
-  1. User runs `brew install rpncalc` (no tap prefix needed).
+  1. User runs `brew install rpnpad` (no tap prefix needed).
   2. Flow continues from step 2 of Main Flow.
 - **Outcome:** Same as main flow; shorter command.
 
 ### Upgrading an existing installation
 - **Trigger:** User has a previous version installed and wants to upgrade
 - **Steps:**
-  1. User runs `brew upgrade rpncalc`.
+  1. User runs `brew upgrade rpnpad`.
   2. Homebrew checks the formula for a newer version.
   3. Homebrew downloads and installs the new archive.
 - **Outcome:** New version is on PATH; old version removed.
 
 ## Postconditions
-- `rpncalc` is available on the user's PATH
-- `rpncalc --version` (if implemented) reports the installed version
-- Homebrew tracks the installation; `brew list` includes rpncalc
-- Future `brew upgrade` will update rpncalc when new releases are published
+- `rpnpad` is available on the user's PATH
+- `rpnpad --version` (if implemented) reports the installed version
+- Homebrew tracks the installation; `brew list` includes rpnpad
+- Future `brew upgrade` will update rpnpad when new releases are published
 
 ## Error Conditions
 - **Tap not found (formula repository does not exist or is private)**: Homebrew reports "Error: Unknown tap: OWNER/tap"; user must wait for tap to be created or use the curl installer instead.
@@ -53,7 +53,7 @@ sequenceDiagram
     participant Tap as Tap Repo
     participant GH as GitHub Release
 
-    U->>HB: brew install OWNER/tap/rpncalc
+    U->>HB: brew install OWNER/tap/rpnpad
     HB->>Tap: fetch formula
     Tap-->>HB: formula (version, URL, SHA256)
     HB->>GH: download .tar.gz archive
@@ -61,7 +61,7 @@ sequenceDiagram
     HB->>HB: verify SHA256 checksum
     alt checksum ok
         HB->>HB: install binary, link to PATH
-        HB-->>U: rpncalc installed ✓
+        HB-->>U: rpnpad installed ✓
     else checksum mismatch
         HB-->>U: error: SHA256 mismatch
     end
@@ -73,10 +73,10 @@ sequenceDiagram
 
 ## Acceptance Criteria
 
-**AC-1: Fresh install places rpncalc on PATH**
+**AC-1: Fresh install places rpnpad on PATH**
 - Given Homebrew is installed and the tap is registered
-- When the user runs `brew install OWNER/tap/rpncalc`
-- Then Homebrew installs the correct binary for the user's macOS platform and `rpncalc` is available on PATH without a shell restart
+- When the user runs `brew install OWNER/tap/rpnpad`
+- Then Homebrew installs the correct binary for the user's macOS platform and `rpnpad` is available on PATH without a shell restart
 
 **AC-2: Correct platform binary installed**
 - Given the user is on Apple Silicon (aarch64)
@@ -84,13 +84,13 @@ sequenceDiagram
 - Then the aarch64-apple-darwin binary is installed (not the x86\_64 binary)
 
 **AC-3: Upgrade installs new version**
-- Given rpncalc is already installed via Homebrew and a newer release exists
-- When the user runs `brew upgrade rpncalc`
+- Given rpnpad is already installed via Homebrew and a newer release exists
+- When the user runs `brew upgrade rpnpad`
 - Then the new version is installed and the old version is removed
 
 **AC-4: Tap not found gives actionable error**
 - Given the tap repository does not exist
-- When the user runs `brew install OWNER/tap/rpncalc`
+- When the user runs `brew install OWNER/tap/rpnpad`
 - Then Homebrew reports a clear error identifying the tap as unknown, and the user is not left with a broken installation
 
 **AC-5: Checksum mismatch aborts installation**

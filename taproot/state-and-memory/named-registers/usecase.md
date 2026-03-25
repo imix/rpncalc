@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 - For STORE: stack has ≥1 value
 - For RCL/DELETE: the named register exists
 - Register names may contain any printable character; Alpha mode (`i`) accepts

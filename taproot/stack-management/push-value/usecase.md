@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running with the TUI open
+- rpnpad is running with the TUI open
 
 ## Main Flow
 1. User begins typing a numeric literal — any digit keypress from normal mode
@@ -49,7 +49,7 @@ stateDiagram-v2
 ```
 
 ## Acceptance Criteria
-**AC-1:** Given rpncalc is in normal mode, when the user presses a digit key, then Insert mode activates and the digit appears in the InputLine.
+**AC-1:** Given rpnpad is in normal mode, when the user presses a digit key, then Insert mode activates and the digit appears in the InputLine.
 
 **AC-2:** Given Insert mode is active with a valid numeric literal, when Enter is pressed, then the value is pushed to the top of the stack and the stack display updates.
 

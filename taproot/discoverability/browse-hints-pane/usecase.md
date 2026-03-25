@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running with terminal width ≥60 columns (hints pane visible)
+- rpnpad is running with terminal width ≥60 columns (hints pane visible)
 
 ## Main Flow
 1. User glances at the hints pane — no explicit action required

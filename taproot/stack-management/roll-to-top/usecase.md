@@ -4,7 +4,7 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in normal mode
+- rpnpad is running in normal mode
 - Stack has ≥2 items (single-item stack has nothing to roll)
 
 ## Main Flow
@@ -123,7 +123,7 @@ stateDiagram-v2
 - Then the cursor stays at position 2 and Browse mode remains active
 
 **AC-7: Error when stack has ≤1 item**
-- Given the stack has 0 or 1 items and rpncalc is in normal mode
+- Given the stack has 0 or 1 items and rpnpad is in normal mode
 - When the user presses `↑`
 - Then an error is shown on the ErrorLine, Browse mode is not entered, and the stack is unchanged
 

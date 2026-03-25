@@ -1,9 +1,9 @@
-name: rpncalc
+name: rpnpad
 base: core22
-adopt-info: rpncalc
+adopt-info: rpnpad
 summary: HP48-style RPN calculator for the terminal
 description: |
-  rpncalc is an HP48-style Reverse Polish Notation calculator for the
+  rpnpad is an HP48-style Reverse Polish Notation calculator for the
   terminal. Features include:
 
   - Arbitrary-precision arithmetic
@@ -18,11 +18,11 @@ grade: stable
 confinement: classic
 
 apps:
-  rpncalc:
-    command: bin/rpncalc
+  rpnpad:
+    command: bin/rpnpad
 
 parts:
-  rpncalc:
+  rpnpad:
     plugin: rust
     source: .
     build-packages:

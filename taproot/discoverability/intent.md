@@ -13,7 +13,7 @@ calculator state.
 ## Success Criteria
 - Every MVP operation is reachable via the hints pane within 2 context states
   from any starting stack state
-- A user with no prior rpncalc experience performs a two-operand arithmetic
+- A user with no prior rpnpad experience performs a two-operand arithmetic
   operation within 60 seconds of first launch
 - Rare operations (e.g. `1/x`, `!`, trig inverses) are found in under 5
   seconds without external documentation

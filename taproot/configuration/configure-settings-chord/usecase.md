@@ -4,11 +4,11 @@
 User (CLI power user)
 
 ## Preconditions
-- rpncalc is running in Normal mode
+- rpnpad is running in Normal mode
 - At least one setting differs from the user's desired value (or user is exploring what is configurable)
 
 ## Main Flow
-1. User presses `C` — rpncalc enters `C›` chord mode; hints pane updates to show all configurable settings grouped by category (angle mode, base, notation, precision, and hex style when base is HEX).
+1. User presses `C` — rpnpad enters `C›` chord mode; hints pane updates to show all configurable settings grouped by category (angle mode, base, notation, precision, and hex style when base is HEX).
 2. User presses one of the setting keys:
    - **Angle mode**: `d` → DEG, `r` → RAD, `g` → GRAD
    - **Base**: `c` → DEC, `h` → HEX, `o` → OCT, `b` → BIN
@@ -16,7 +16,7 @@ User (CLI power user)
    - **Precision**: `p` → enters precision-input mode (see Alternate Flow: Precision input)
    - **Hex style** (only shown when base is HEX): `1` → `0xFF`, `2` → `$FF`, `3` → `#FF`, `4` → `FFh`
 3. The new setting takes effect immediately: all stack values redisplay, mode bar updates.
-4. Chord mode exits; rpncalc returns to Normal mode.
+4. Chord mode exits; rpnpad returns to Normal mode.
 5. Setting persists in the session file and is restored on next launch.
 
 ## Alternate Flows
@@ -24,7 +24,7 @@ User (CLI power user)
 ### Precision input (C›p)
 - **Trigger:** User presses `p` in `C›` chord mode
 - **Steps:**
-  1. rpncalc enters `[PREC]` sub-mode; mode bar shows `[PREC]`; input buffer is empty
+  1. rpnpad enters `[PREC]` sub-mode; mode bar shows `[PREC]`; input buffer is empty
   2. User types digit keys (`0`–`9`); each digit is appended to the buffer (max 2 characters; further digits ignored)
   3. Non-digit keys other than Enter, Esc, and Backspace are silently ignored
   4. Backspace deletes the last digit from the buffer (no-op if buffer is empty)
@@ -147,7 +147,7 @@ stateDiagram-v2
 
 **AC-11: Settings persist across restart**
 - Given user sets notation to `sci` and precision to `6` via `C›`
-- When user quits and relaunches rpncalc
+- When user quits and relaunches rpnpad
 - Then notation is `sci` and precision is `6` from the first frame
 
 **AC-12: m and x are Noop in Normal mode**

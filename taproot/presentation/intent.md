@@ -7,7 +7,7 @@ coherent color accent, and a clear visual hierarchy that guides the eye
 without getting in the way of computation.
 
 ## Stakeholders
-- **CLI power user**: uses rpncalc daily and wants a tool that looks as
+- **CLI power user**: uses rpnpad daily and wants a tool that looks as
   polished as btop or lazygit — consistent borders, readable panel titles,
   and a professional color scheme that makes the tool feel intentional
 - **Developer**: wants the visual design to be systematic, not ad-hoc —

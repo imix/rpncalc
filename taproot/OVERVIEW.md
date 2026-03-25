@@ -7,7 +7,7 @@ Compact summary for AI agents. Read this before diving into individual taproot d
 
 ## [configuration](./configuration/intent.md) `[active]`
 
-**Goal:** Enable users to persist personal workflow defaults so rpncalc behaves
+**Goal:** Enable users to persist personal workflow defaults so rpnpad behaves
 correctly from the first keypress of every session.
 
 - **[configure-defaults](./configuration/configure-defaults/usecase.md)** `[implemented]` — Actor: User (CLI power user)
@@ -32,7 +32,7 @@ calculator state.
 
 ## [distribution](./distribution/intent.md) `[draft]`
 
-**Goal:** Enable users on Linux and macOS to install rpncalc with a single command — no Rust toolchain required
+**Goal:** Enable users on Linux and macOS to install rpnpad with a single command — no Rust toolchain required
 
 - **[cargo-dist-release-pipeline](./distribution/cargo-dist-release-pipeline/usecase.md)** `[implemented]` — Actor: Maintainer (solo developer)
   - [github-actions](./distribution/cargo-dist-release-pipeline/github-actions/impl.md) `[complete]` (2 commits, 3 tests)
@@ -44,7 +44,7 @@ calculator state.
   - [homebrew-formula](./distribution/install-via-homebrew/homebrew-formula/impl.md) `[complete]` (2 commits, 5 tests)
 - **[install-via-snap](./distribution/install-via-snap/usecase.md)** `[implemented]` — Actor: CLI power user (Ubuntu, Fedora, Debian, or any Linux distro with snapd installed)
   - [snapcraft](./distribution/install-via-snap/snapcraft/impl.md) `[complete]` (0 commits ⚠ no tests)
-- **[project-readme](./distribution/project-readme/usecase.md)** `[implemented]` — Actor: Prospective user or new user (any platform, no rpncalc installed yet)
+- **[project-readme](./distribution/project-readme/usecase.md)** `[implemented]` — Actor: Prospective user or new user (any platform, no rpnpad installed yet)
   - [readme](./distribution/project-readme/readme/impl.md) `[complete]` (2 commits ⚠ no tests)
 
 ## [mathematical-operations](./mathematical-operations/intent.md) `[active]`

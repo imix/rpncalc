@@ -1,7 +1,7 @@
-# Behaviour: User reads the project README to discover and learn rpncalc
+# Behaviour: User reads the project README to discover and learn rpnpad
 
 ## Actor
-Prospective user or new user (any platform, no rpncalc installed yet)
+Prospective user or new user (any platform, no rpnpad installed yet)
 
 ## Preconditions
 - The GitHub repository is public
@@ -11,7 +11,7 @@ Prospective user or new user (any platform, no rpncalc installed yet)
 ## Main Flow
 1. User discovers the project (via GitHub search, a link, word of mouth, or Homebrew search).
 2. User opens the repository and reads the README.
-3. User reads the project description and understands what rpncalc is and who it is for.
+3. User reads the project description and understands what rpnpad is and who it is for.
 4. User selects an install path appropriate to their platform and preference (Homebrew, curl, or cargo).
 5. User follows the install command for their chosen path.
 6. User reads the quick-start example and runs their first calculation.
@@ -21,9 +21,9 @@ Prospective user or new user (any platform, no rpncalc installed yet)
 ### User already has Rust toolchain
 - **Trigger:** User sees the `cargo install` path and prefers it
 - **Steps:**
-  1. User runs `cargo install rpncalc`.
+  1. User runs `cargo install rpnpad`.
   2. Flow continues from step 6.
-- **Outcome:** rpncalc installed via Cargo; user proceeds to quick start.
+- **Outcome:** rpnpad installed via Cargo; user proceeds to quick start.
 
 ### User returns to README as a reference
 - **Trigger:** Existing user forgets a key binding or wants to check a chord sequence
@@ -33,13 +33,13 @@ Prospective user or new user (any platform, no rpncalc installed yet)
 - **Outcome:** User resumes work without needing to consult the in-app hints pane.
 
 ## Postconditions
-- User knows what rpncalc is and whether it suits their needs
+- User knows what rpnpad is and whether it suits their needs
 - User has a working install command they can run immediately
 - User understands the RPN stack model and HP48-style position numbering
 - User can perform basic arithmetic, use chord sequences, and recall key bindings from the README
 
 ## Error Conditions
-- **`OWNER` placeholder not replaced in install commands**: User sees `brew install OWNER/tap/rpncalc` or a curl URL with `OWNER` — command fails; maintainer must update the README with the real GitHub username before publishing.
+- **`OWNER` placeholder not replaced in install commands**: User sees `brew install OWNER/tap/rpnpad` or a curl URL with `OWNER` — command fails; maintainer must update the README with the real GitHub username before publishing.
 - **README key reference out of sync with handler.rs**: User tries a key binding listed in the README that no longer works or has changed; maintainer must keep the key reference updated when adding or changing bindings.
 - **Quick-start example uses removed or renamed operation**: User follows the example and gets an error; example must be validated against the current build before release.
 
@@ -51,7 +51,7 @@ flowchart TD
     B --> C{Choose install path}
     C -->|macOS + Homebrew| D[brew install ...]
     C -->|Linux or macOS + curl| E[curl ... | sh]
-    C -->|Has Rust| F[cargo install rpncalc]
+    C -->|Has Rust| F[cargo install rpnpad]
     D --> G[Follow quick-start]
     E --> G
     F --> G
@@ -72,7 +72,7 @@ flowchart TD
 - Then they find distinct, copy-pasteable commands for Homebrew (macOS), curl (Linux/macOS), and cargo (any platform with Rust)
 
 **AC-2: Quick-start example is complete and correct**
-- Given a user has just installed rpncalc
+- Given a user has just installed rpnpad
 - When they follow the quick-start section in the README
 - Then they can complete at least one full calculation (push two values, apply an operation, see the result) using only the README as a guide
 

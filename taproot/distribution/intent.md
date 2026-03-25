@@ -1,17 +1,17 @@
 # Intent: Zero-Friction Installation for Linux and macOS
 
 ## Stakeholders
-- CLI power user: any developer or power user who discovers rpncalc — their interest is installing and running it in under a minute, without setting up a Rust toolchain
+- CLI power user: any developer or power user who discovers rpnpad — their interest is installing and running it in under a minute, without setting up a Rust toolchain
 - Maintainer: the solo developer — their interest is automated releases that reach users without manual packaging work on every version bump
 
 ## Goal
-Enable users on Linux and macOS to install rpncalc with a single command — no Rust toolchain required. When a new version is tagged, the release pipeline runs automatically and produces installable artifacts, so users always have a frictionless path to the latest build.
+Enable users on Linux and macOS to install rpnpad with a single command — no Rust toolchain required. When a new version is tagged, the release pipeline runs automatically and produces installable artifacts, so users always have a frictionless path to the latest build.
 
 ## Success Criteria
-- [ ] A macOS user can install rpncalc with `brew install` and have it on PATH
-- [ ] A Linux user can install rpncalc with a `curl | sh` script and have it on PATH
+- [ ] A macOS user can install rpnpad with `brew install` and have it on PATH
+- [ ] A Linux user can install rpnpad with a `curl | sh` script and have it on PATH
 - [ ] Pushing a git tag triggers the full release pipeline without manual steps
-- [ ] `cargo install rpncalc` continues to work for users who do have Rust
+- [ ] `cargo install rpnpad` continues to work for users who do have Rust
 - [ ] Release artifacts are reproducibly built from source in CI
 
 ## Constraints
@@ -21,11 +21,11 @@ Enable users on Linux and macOS to install rpncalc with a single command — no 
 
 ## Behaviours <!-- taproot-managed -->
 - [Maintainer publishes a release via cargo-dist](./cargo-dist-release-pipeline/usecase.md)
-- [User installs rpncalc via Homebrew](./install-via-homebrew/usecase.md)
-- [User installs rpncalc via curl installer](./install-via-curl/usecase.md)
-- [User reads the project README to discover and learn rpncalc](./project-readme/usecase.md)
-- [User installs rpncalc via AUR](./install-via-aur/usecase.md)
-- [User installs rpncalc via Snap Store](./install-via-snap/usecase.md)
+- [User installs rpnpad via Homebrew](./install-via-homebrew/usecase.md)
+- [User installs rpnpad via curl installer](./install-via-curl/usecase.md)
+- [User reads the project README to discover and learn rpnpad](./project-readme/usecase.md)
+- [User installs rpnpad via AUR](./install-via-aur/usecase.md)
+- [User installs rpnpad via Snap Store](./install-via-snap/usecase.md)
 
 ## Status
 - **State:** draft
