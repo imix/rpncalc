@@ -23,6 +23,8 @@
 - `cbce3842efa7d271c696c4d1394df2b87c521db0` — (auto-linked by taproot link-commits)
 - `ed3f756cfe5bfd316a4ab3a90f88e7012cd92561` — (auto-linked by taproot link-commits)
 - `afdc4b5f2cf79c13a5fc66130ae8be98da38f95e` — (auto-linked by taproot link-commits)
+- `f3dc9d2c82e8b4d9439e1c793b025770137ac775` — (auto-linked by taproot link-commits)
+- `8b9d87ac96e75a315cc46008578df1c2597856a2` — (auto-linked by taproot link-commits)
 
 ## Tests
 Integration tests require snapd and Snapcraft:
