@@ -1680,4 +1680,44 @@ mod tests {
         assert_eq!(restored.notation, Notation::Sci);
         assert_eq!(restored.precision, 6);
     }
+
+    // AC-6: Backspace in Normal removes top stack item (same as Drop)
+    #[test]
+    fn test_backspace_drops_top() {
+        let mut app = App::new();
+        push_int(&mut app, 42);
+        push_int(&mut app, 99);
+        app.apply(Action::Execute(Op::Drop)); // same action Backspace produces
+        assert_eq!(app.state.stack.len(), 1);
+        assert!(app.error_message.is_none());
+    }
+
+    // AC-5 + AC-6: Backspace (Drop) on empty stack shows underflow error
+    #[test]
+    fn test_backspace_on_empty_shows_error() {
+        let mut app = App::new();
+        app.apply(Action::Execute(Op::Drop));
+        assert!(app.error_message.is_some());
+        assert_eq!(app.state.stack.len(), 0);
+    }
+
+    // AC-7: Delete clears all stack items
+    #[test]
+    fn test_delete_clears_stack() {
+        let mut app = App::new();
+        push_int(&mut app, 1);
+        push_int(&mut app, 2);
+        app.apply(Action::Execute(Op::Clear));
+        assert_eq!(app.state.stack.len(), 0);
+        assert!(app.error_message.is_none());
+    }
+
+    // AC-7: Delete on empty stack is no-op, no error
+    #[test]
+    fn test_delete_on_empty_is_noop() {
+        let mut app = App::new();
+        app.apply(Action::Execute(Op::Clear));
+        assert_eq!(app.state.stack.len(), 0);
+        assert!(app.error_message.is_none());
+    }
 }

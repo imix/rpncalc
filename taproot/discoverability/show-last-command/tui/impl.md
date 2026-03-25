@@ -20,6 +20,8 @@
 
 ## Commits
 - placeholder
+- `df2f91a09213a700959857fe58542a0a0149b1ba` — (auto-linked by taproot link-commits)
+- `7a1689f409e942137ba429983ca2c561dd0f01fa` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/input/handler.rs` — `command_label` tests: AC-2 (chord two-key label), AC-3 (label returned regardless of stack depth), AC-4 (navigation returns None), AC-7 (InsertSubmitThen returns label), AC-11 (EnterStoreMode returns None)

@@ -42,6 +42,8 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Char('x') => Action::Noop,
             KeyCode::Char('X') => Action::Noop,
             KeyCode::Char('S') => Action::EnterStoreMode,
+            KeyCode::Backspace => Action::Execute(Op::Drop),
+            KeyCode::Delete => Action::Execute(Op::Clear),
             KeyCode::Up => Action::EnterBrowseMode,
             KeyCode::Enter => Action::Execute(Op::Dup),
             KeyCode::Esc => Action::Noop,
@@ -487,6 +489,24 @@ mod tests {
             Action::Undo
         );
         assert_eq!(handle_key(&AppMode::Normal, ctrl_key('r')), Action::Redo);
+    }
+
+    // AC-6: Backspace in Normal → Drop
+    #[test]
+    fn test_normal_backspace_is_drop() {
+        assert_eq!(
+            handle_key(&AppMode::Normal, key(KeyCode::Backspace)),
+            Action::Execute(Op::Drop)
+        );
+    }
+
+    // AC-7: Delete in Normal → Clear
+    #[test]
+    fn test_normal_delete_is_clear() {
+        assert_eq!(
+            handle_key(&AppMode::Normal, key(KeyCode::Delete)),
+            Action::Execute(Op::Clear)
+        );
     }
 
     // 'r' without Ctrl → enters Rounding chord (not Redo, not Rotate)

@@ -23,6 +23,7 @@
 
 ## Commits
 - 7066c63 feat: complete Epics 2–4 + layout width cap
+- `84f31d106c43c99f38c5a8fedb608ea15f4552e1` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/tui/widgets/hints_pane.rs` — AC-1: `test_depth0_shows_constants_leader`, `test_depth0_shows_stack_ops`; AC-2: `test_depth2_shows_full_arithmetic`, `test_normal_mode_shows_add_op`; AC-3: `test_registers_shows_section_header`, `test_registers_shows_register_name`, `test_registers_shows_recall_command`

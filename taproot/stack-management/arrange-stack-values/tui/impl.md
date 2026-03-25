@@ -32,7 +32,7 @@
   rotate, clear including underflow cases and deep-stack invariants
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-21
 - **Last verified:** 2026-03-25
 
