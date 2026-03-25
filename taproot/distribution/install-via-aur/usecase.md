@@ -114,6 +114,7 @@ sequenceDiagram
 - Then the AUR helper reports "target not found" and the user is not left with a broken state
 
 ## Implementations <!-- taproot-managed -->
+- [PKGBUILD](./pkgbuild/impl.md)
 
 ## Status
 - **State:** specified

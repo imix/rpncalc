@@ -104,6 +104,7 @@ sequenceDiagram
 - Then stdin, stdout, and terminal control sequences work correctly without confinement errors
 
 ## Implementations <!-- taproot-managed -->
+- [snapcraft](./snapcraft/impl.md)
 
 ## Status
 - **State:** specified
