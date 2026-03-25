@@ -4,7 +4,7 @@
 ../usecase.md
 
 ## Design Decisions
-- `confinement: strict` with a `personal-files` plug scoped to `$HOME/.config/rpnpad` — strict confinement allows terminal access (inherited file descriptors) and avoids the classic confinement manual review process; `personal-files` is auto-approved by the store for scoped paths
+- `confinement: strict` with no extra plugs — the snap sets `HOME=$SNAP_USER_COMMON` in the app environment, redirecting `dirs::home_dir()` to `~/snap/rpnpad/common/`; config and session files land at `~/snap/rpnpad/common/.rpnpad/`; no store review required
 - Uses `dump` plugin with pre-built binary from cargo-dist — simpler than building from source in the snap pipeline; the binary is already verified by the cargo-dist release
 - `base: core22` (Ubuntu 22.04 LTS) — current stable base with long support horizon; avoids `core18` (deprecated) and `core24` (newer, less tested)
 - `grade: stable` — published to the stable channel; users get it by default without specifying a channel
@@ -45,7 +45,7 @@ Integration tests require snapd and Snapcraft:
 - condition: document-current | note: README snap section unchanged — external cause fix adds no new user-visible behaviour | resolved: 2026-03-25T19:53:54.998Z
 
 ## Status
-- **State:** complete
+- **State:** needs-rework
 - **Created:** 2026-03-25
 - **Last verified:** 2026-03-25
 
