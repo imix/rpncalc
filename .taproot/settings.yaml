@@ -8,7 +8,7 @@ agents:
   - generic
 
 definitionOfDone:
-  - document-current: check README.md Install section — every active distribution channel (Homebrew, Snap, AUR, curl, cargo) must have install instructions; add any that are missing
+  - document-current: check README.md — every user-visible behaviour, key binding, configuration option, and distribution channel described in the implementation must be accurately reflected in the README; update any section that is missing or out of date
 
 validation:
   require_dates: true
