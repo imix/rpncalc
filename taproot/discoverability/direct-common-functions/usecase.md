@@ -91,6 +91,9 @@ stateDiagram-v2
 - When the user presses the direct √ key
 - Then a domain error is shown on ErrorLine and the stack is unchanged
 
+## Implementations <!-- taproot-managed -->
+- [TUI](./tui/impl.md)
+
 ## Status
 - **State:** specified
 - **Created:** 2026-03-25
