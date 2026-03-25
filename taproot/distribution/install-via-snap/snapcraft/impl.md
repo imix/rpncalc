@@ -17,6 +17,8 @@
 
 ## Commits
 - placeholder
+- `c429a0bb4fe2c6b048de6fd837bc32b9691d2b3e` — (auto-linked by taproot link-commits)
+- `ad427b8f0be853f51a35a27d9aaf76d9df4a7eac` — (auto-linked by taproot link-commits)
 
 ## Tests
 Integration tests require snapd and Snapcraft:
