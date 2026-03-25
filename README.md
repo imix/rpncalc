@@ -299,6 +299,20 @@ The stack, registers, angle mode, and base are saved when you quit and restored 
 
 ---
 
+## Releasing
+
+1. Bump the version in `Cargo.toml` (patch / minor / major as appropriate)
+2. Run `cargo check` to update `Cargo.lock`
+3. Commit: `git commit -am "chore: bump version to X.Y.Z"`
+4. Tag: `git tag vX.Y.Z`
+5. Push: `git push origin main vX.Y.Z`
+
+GitHub Actions picks up the tag and runs the full release pipeline automatically — builds binaries for Linux and macOS, creates the GitHub Release with archives and installer script, updates the Homebrew formula, and publishes the snap.
+
+If the build fails: delete the tag (`git push origin :vX.Y.Z`), fix the issue, and re-tag.
+
+---
+
 ## Building from Source
 
 ```sh
