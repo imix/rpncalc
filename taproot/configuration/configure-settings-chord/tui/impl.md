@@ -9,7 +9,7 @@
 - **`PrecisionInput(String)` as a new `AppMode` variant**: the precision sub-mode is structurally equivalent to Insert mode (buffer accumulates, Enter confirms, Esc cancels, Backspace deletes). Reusing the AppMode enum pattern avoids ad-hoc state.
 - **Hex style validation in `App::apply`**: keys `1`–`4` from the Config chord dispatch `SetHexStyle`, but `App::apply` checks `state.base == Base::Hex` before forwarding to `dispatch()`; if not HEX, sets error and exits chord. Handler cannot check app state, so validation belongs in apply.
 - **`m`, `x`, `X` → Noop in Normal mode**: bindings removed; keys now fall through to the `_ => Action::Noop` arm. No error shown (AC-12).
-- **Notation display in `value.rs`**: `display_with_notation(base, precision, notation)` wraps the existing `format_fbig_prec`; for `Sci` always uses `{:e}` formatting; for `Auto` applies threshold (`|v| ≥ 1e10` or `|v| < 1e-4 and v ≠ 0`); integers are unaffected by notation mode.
+- **Notation display in `value.rs`**: `display_with_notation(base, precision, notation)` wraps the existing `format_fbig_prec`; for `Sci` always uses `{:e}` formatting; for `Auto` applies threshold (`|v| ≥ 1e10` or `|v| < 1e-4 and v ≠ 0`). Integers follow the same rules: `Sci` formats them in natural exact scientific notation (e.g. `100` → `1e2`); `Auto` applies the `≥ 1e10` threshold; `Fixed` leaves integers unchanged. Precision is not applied to integers — they are exact.
 - **`SCI`/`AUTO` in mode bar right string**: appended after `DEG  DEC` when notation is non-default; subject to same width-truncation logic as other mode bar content.
 - **Config chord submenu in hints pane**: replaces `m›`/`x›`/`X›` entries in `CHORD_LEADERS` with `C›  cfg`. The submenu shows ANGLE, BASE, NOTATION, PRECISION sections, plus HEX STYLE only when base=HEX (context-sensitive like existing chord submenus).
 
@@ -32,7 +32,7 @@
 - `19300185091c1829918b2056bd607e3ac201fd79` — feat(tui)[configure-settings-chord]: implement C› config chord
 
 ## Tests
-- `src/engine/value.rs` — AC-3 (sci notation format), AC-4 (fixed), AC-5 (auto below threshold), AC-15 (auto above threshold); integer unaffected by notation
+- `src/engine/value.rs` — AC-3 (sci notation format for floats and integers), AC-4 (fixed), AC-5 (auto below threshold), AC-15 (auto above threshold), AC-16 (auto threshold for integers)
 - `src/input/handler.rs` — AC-1/2/3/4 (Config chord dispatches correct actions); AC-12 (m/x are Noop); precision input mode keys
 - `src/tui/app.rs` — AC-6 (precision updated), AC-7 (out-of-range rejected), AC-8 (hex style rejected when not HEX), AC-9 (hex style when HEX); AC-10 (Esc cancels)
 - `src/tui/widgets/mode_bar.rs` — AC-14 (SCI/AUTO/blank indicator); [PREC] mode label
@@ -40,7 +40,7 @@
 - `src/config/config.rs` — notation config.toml key parsed correctly
 
 ## Status
-- **State:** complete
+- **State:** in-progress
 - **Created:** 2026-03-25
 - **Last verified:** 2026-03-25
 
