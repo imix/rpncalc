@@ -351,20 +351,16 @@ jobs:
           echo "Using tarball: $TARBALL"
           tar -xf "$TARBALL" -C snap/ --strip-components=1
           echo "${{ needs.plan.outputs.tag }}" | sed 's/^v//' > snap/version.txt
-      - name: Initialise snapd
-        run: |
-          sudo systemctl start snapd
-          sudo snap wait system seed.loaded
-      - name: Install snapcraft
-        run: sudo snap install snapcraft --classic
       - name: Build snap
-        run: snapcraft pack --destructive-mode --build-for amd64
-        working-directory: snap/
+        uses: snapcore/action-build@v1
+        id: snapcraft
+        with:
+          path: snap/
       - name: Publish snap
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
         run: |
-          snapcraft upload --release=stable snap/rpnpad_*_amd64.snap
+          snapcraft upload --release=stable ${{ steps.snapcraft.outputs.snap }}
 
   announce:
     needs:
