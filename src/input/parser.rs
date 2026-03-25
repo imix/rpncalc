@@ -1,5 +1,7 @@
 use crate::engine::value::CalcValue;
 use crate::engine::CalcError;
+use dashu::float::round::mode::Zero;
+use dashu::float::Context;
 use dashu::float::FBig;
 use dashu::integer::IBig;
 
@@ -84,20 +86,59 @@ fn parse_integer(s: &str) -> Result<CalcValue, CalcError> {
         .map_err(|_| CalcError::InvalidInput(format!("Invalid integer: {}", s)))
 }
 
+/// Parse decimal precision bits — enough for ~38 significant decimal digits,
+/// well beyond the 15-digit display precision. Avoids f64 intermediate.
+const PARSE_PRECISION_BITS: usize = 128;
+
 fn parse_float(s: &str) -> Result<CalcValue, CalcError> {
-    s.parse::<f64>()
+    parse_decimal_exact(s)
+        .map(CalcValue::Float)
         .map_err(|_| CalcError::InvalidInput(format!("Invalid number: {}", s)))
-        .and_then(|f| {
-            if f.is_nan() || f.is_infinite() {
-                Err(CalcError::InvalidInput(
-                    "Invalid floating point value".to_string(),
-                ))
-            } else {
-                FBig::try_from(f)
-                    .map(CalcValue::Float)
-                    .map_err(|_| CalcError::InvalidInput("Could not convert to float".to_string()))
-            }
-        })
+}
+
+/// Parse a decimal string (e.g. "1.223", "-4.5e-3") into FBig without
+/// routing through f64, preserving full decimal precision.
+fn parse_decimal_exact(s: &str) -> Result<FBig, ()> {
+    // Validate the string is parseable as a number first.
+    let f = s.parse::<f64>().map_err(|_| ())?;
+    if f.is_nan() || f.is_infinite() {
+        return Err(());
+    }
+
+    let lower = s.to_lowercase();
+
+    // Split mantissa and exponent (e.g. "1.5e-3" → ("1.5", -3)).
+    let (mantissa_s, exp_offset): (&str, i64) = match lower.find('e') {
+        Some(pos) => {
+            let exp: i64 = s[pos + 1..].parse().map_err(|_| ())?;
+            (&s[..pos], exp)
+        }
+        None => (s, 0),
+    };
+
+    // Split mantissa into integer and fractional parts.
+    let (int_s, frac_s) = match mantissa_s.find('.') {
+        Some(pos) => (&mantissa_s[..pos], &mantissa_s[pos + 1..]),
+        None => (mantissa_s, ""),
+    };
+
+    let decimal_places = frac_s.len() as i64;
+    let combined = format!("{}{}", int_s, frac_s);
+    let significand: IBig = combined.parse().map_err(|_| ())?;
+
+    // net_exp: total power of 10, e.g. "1.223" → significand=1223, net_exp=-3
+    let net_exp = exp_offset - decimal_places;
+
+    let ctx = Context::<Zero>::new(PARSE_PRECISION_BITS);
+
+    Ok(if net_exp >= 0 {
+        let n = significand * IBig::from(10u8).pow(net_exp as usize);
+        ctx.convert_int::<2>(n).value()
+    } else {
+        let num = ctx.convert_int::<2>(significand).value();
+        let den = ctx.convert_int::<2>(IBig::from(10u8).pow((-net_exp) as usize)).value();
+        ctx.div(num.repr(), den.repr()).value()
+    })
 }
 
 fn negate(v: CalcValue) -> CalcValue {
@@ -256,5 +297,30 @@ mod tests {
             parse_value("0b2"),
             Err(CalcError::InvalidInput(_))
         ));
+    }
+
+    // ── precision regression ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_decimal_no_f64_precision_loss() {
+        // 1.223 × 100 must display as "122.3", not "122.299999999999997".
+        // Regression: old code parsed through f64, introducing IEEE 754 error.
+        use crate::engine::ops::{apply_op, Op};
+        use crate::engine::stack::CalcState;
+        use crate::engine::value::format_fbig_prec;
+
+        let mut state = CalcState::default();
+        let v1 = parse_value("1.223").unwrap();
+        let v2 = parse_value("100").unwrap();
+        state.stack.push(v1);
+        state.stack.push(v2);
+        apply_op(&mut state, Op::Mul).unwrap();
+        let result = state.stack.last().unwrap();
+        if let crate::engine::value::CalcValue::Float(f) = result {
+            let s = format_fbig_prec(f, 15);
+            assert_eq!(s, "122.3", "1.223 × 100 should display as '122.3', got '{}'", s);
+        } else {
+            panic!("expected Float result");
+        }
     }
 }

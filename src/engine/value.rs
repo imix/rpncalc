@@ -132,12 +132,8 @@ pub(crate) fn format_fbig(f: &FBig) -> String {
     if val.is_nan() || val.is_infinite() {
         return format!("{}", val);
     }
-    let s = format!("{:.15}", val);
-    if s.contains('.') {
-        s.trim_end_matches('0').trim_end_matches('.').to_string()
-    } else {
-        s
-    }
+    // Use Ryu shortest representation — avoids spurious digits from {:.15} formatting.
+    format!("{}", val)
 }
 
 pub(crate) fn format_fbig_prec(f: &FBig, precision: usize) -> String {
@@ -145,11 +141,23 @@ pub(crate) fn format_fbig_prec(f: &FBig, precision: usize) -> String {
     if val.is_nan() || val.is_infinite() {
         return format!("{}", val);
     }
-    let s = format!("{:.prec$}", val, prec = precision);
-    if s.contains('.') {
-        s.trim_end_matches('0').trim_end_matches('.').to_string()
+    // Use Ryu shortest representation as the base. Only fall back to fixed decimal
+    // places when the natural representation exceeds `precision` decimal places.
+    // This avoids spurious digits like "122.299999999999997" caused by f64 round-trip.
+    let natural = format!("{}", val);
+    let natural_decimal_places = natural
+        .find('.')
+        .map(|pos| natural.len() - pos - 1)
+        .unwrap_or(0);
+    if natural_decimal_places <= precision {
+        natural
     } else {
-        s
+        let s = format!("{:.prec$}", val, prec = precision);
+        if s.contains('.') {
+            s.trim_end_matches('0').trim_end_matches('.').to_string()
+        } else {
+            s
+        }
     }
 }
 
@@ -167,19 +175,28 @@ pub(crate) fn format_fbig_notation(f: &FBig, precision: usize, notation: Notatio
         }
     };
     if use_sci {
-        // Format as scientific notation with `precision` significant digits after decimal
-        let s = format!("{:.prec$e}", val, prec = precision);
-        // Rust's {:e} uses 'e' notation like "3.14e0"; trim trailing zeros in mantissa
+        // Format as scientific notation with up to `precision` digits after decimal.
+        // Use Ryu natural form as base; fall back to fixed-width only when it is longer.
+        let natural_e = format!("{:e}", val);
+        let natural_decimal_places = natural_e
+            .find('e')
+            .and_then(|e| natural_e[..e].find('.').map(|d| e - d - 1))
+            .unwrap_or(0);
+        let s = if natural_decimal_places <= precision {
+            natural_e
+        } else {
+            format!("{:.prec$e}", val, prec = precision)
+        };
+        // Normalise exponent: trim mantissa zeros and remove leading '+' from exponent.
         if let Some(e_pos) = s.find('e') {
             let mantissa = &s[..e_pos];
-            let exponent = &s[e_pos..];
+            let exponent = &s[e_pos + 1..];
             let trimmed = if mantissa.contains('.') {
-                let m = mantissa.trim_end_matches('0').trim_end_matches('.');
-                m.to_string()
+                mantissa.trim_end_matches('0').trim_end_matches('.').to_string()
             } else {
                 mantissa.to_string()
             };
-            format!("{}e{}", trimmed, exponent.trim_start_matches('e').trim_start_matches('+'))
+            format!("{}e{}", trimmed, exponent.trim_start_matches('+'))
         } else {
             s
         }

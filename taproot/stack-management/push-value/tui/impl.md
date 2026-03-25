@@ -70,6 +70,6 @@
   unified to use `height` so label column is consistent across empty and value rows
 
 ## Status
-- **State:** complete
+- **State:** needs-rework
 - **Created:** 2026-03-21
 - **Last verified:** 2026-03-24
