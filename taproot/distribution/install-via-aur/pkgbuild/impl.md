@@ -18,6 +18,7 @@
 
 ## Commits
 - placeholder
+- `b19ec0fec2f3dccf02faa8f6c1eceaabd4f3bf96` — (auto-linked by taproot link-commits)
 
 ## Tests
 This is a packaging configuration. Integration tests require an Arch Linux environment:
