@@ -13,7 +13,7 @@ correctly from the first keypress of every session.
 - **[configure-defaults](./configuration/configure-defaults/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./configuration/configure-defaults/tui/impl.md) `[complete]` (0 commits, 1 test)
 - **[configure-settings-chord](./configuration/configure-settings-chord/usecase.md)** `[implemented]` — Actor: User (CLI power user)
-  - [tui](./configuration/configure-settings-chord/tui/impl.md) `[complete]` (1 commit, 6 tests)
+  - [tui](./configuration/configure-settings-chord/tui/impl.md) `[complete]` (3 commits, 6 tests)
 
 ## [discoverability](./discoverability/intent.md) `[active]`
 

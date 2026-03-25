@@ -30,6 +30,8 @@
 
 ## Commits
 - `19300185091c1829918b2056bd607e3ac201fd79` — feat(tui)[configure-settings-chord]: implement C› config chord
+- `7e8a2898e757017de25f21d33a866380bef306bd` — (auto-linked by taproot link-commits)
+- `a6cffffad5dc763644086faac5a18a144355b8ce` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/engine/value.rs` — AC-3 (sci notation format for floats and integers), AC-4 (fixed), AC-5 (auto below threshold), AC-15 (auto above threshold), AC-16 (auto threshold for integers)
