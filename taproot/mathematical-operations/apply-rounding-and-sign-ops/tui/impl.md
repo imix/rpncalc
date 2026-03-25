@@ -19,6 +19,8 @@
 
 ## Commits
 <!-- taproot link-commits will fill this -->
+- `04dda927646fbd5192e18398bdac21005265af62` — (auto-linked by taproot link-commits)
+- `0f069cdf06451f0f8a917143942e8280747f2d62` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/engine/ops.rs` — AC-1 through AC-9, AC-11 through AC-13: FLOOR pos/neg, CEIL, TRUNC toward zero, ROUND decimal/negative precision, SIGN −1/0/+1, underflow, non-integer precision

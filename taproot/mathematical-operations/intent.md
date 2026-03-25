@@ -25,6 +25,7 @@ stacked values and control the numeric modes that govern their computation.
 ## Behaviours <!-- taproot-managed -->
 - [User applies a mathematical operation to stacked values](./apply-operation/usecase.md)
 - [User switches numeric mode mid-session](./switch-numeric-mode/usecase.md)
+- [User applies rounding and sign operations to stacked values](./apply-rounding-and-sign-ops/usecase.md)
 
 
 ## Status
