@@ -6,6 +6,10 @@ agents:
   - claude
   - cursor
   - generic
+
+definitionOfDone:
+  - document-current: check README.md Install section — every active distribution channel (Homebrew, Snap, AUR, curl, cargo) must have install instructions; add any that are missing
+
 validation:
   require_dates: true
   require_status: true
