@@ -347,9 +347,9 @@ jobs:
         run: |
           echo "--- artifacts ---"
           ls -la target/distrib/
-          TARBALL=$(ls target/distrib/rpnpad-*x86_64*linux*.tar.gz | head -1)
+          TARBALL=$(ls target/distrib/rpnpad-*x86_64*linux*.tar.xz | head -1)
           echo "Using tarball: $TARBALL"
-          tar -xzf "$TARBALL" -C snap/ --strip-components=1
+          tar -xf "$TARBALL" -C snap/ --strip-components=1
           echo "${{ needs.plan.outputs.tag }}" | sed 's/^v//' > snap/version.txt
       - name: Install snapcraft
         run: sudo snap install snapcraft --classic

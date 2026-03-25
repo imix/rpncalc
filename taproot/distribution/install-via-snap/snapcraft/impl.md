@@ -30,10 +30,11 @@ Integration tests require snapd and Snapcraft:
 ## DoR Resolutions
 
 ## DoD Resolutions
-- **document-current**: README.md `## Snap` section already documents `snap install rpnpad` with the snapd prerequisite — no update needed.
+- condition: document-current | note: README.md snap section already documents 'snap install rpnpad' with the snapd prerequisite — no update needed | resolved: 2026-03-25T19:42:45.328Z
+
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-25
 - **Last verified:** 2026-03-25
 
