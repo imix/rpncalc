@@ -20,11 +20,12 @@ documentation, through a context-sensitive hints pane that adapts to
 calculator state.
 
 - **[browse-hints-pane](./discoverability/browse-hints-pane/usecase.md)** `[implemented]` — Actor: User (CLI power user)
-  - [tui](./discoverability/browse-hints-pane/tui/impl.md) `[complete]` (0 commits ⚠ no tests)
+  - [tui](./discoverability/browse-hints-pane/tui/impl.md) `[complete]` (0 commits, 2 tests)
 - **[direct-common-functions](./discoverability/direct-common-functions/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./discoverability/direct-common-functions/tui/impl.md) `[complete]` (2 commits, 2 tests)
 - **[execute-chord-operation](./discoverability/execute-chord-operation/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./discoverability/execute-chord-operation/tui/impl.md) `[complete]` (0 commits, 1 test)
+- **[show-last-command](./discoverability/show-last-command/usecase.md)** `[specified]` — Actor: User (CLI power user)
 
 ## [distribution](./distribution/intent.md) `[draft]`
 
@@ -88,4 +89,4 @@ mistakes at any point, and store intermediate results in named registers.
   - [tui](./state-and-memory/undo-redo/tui/impl.md) `[complete]` (0 commits, 1 test)
 
 ---
-7 intents · 19 behaviours · 19 implementations · 19/19 complete
+7 intents · 20 behaviours · 19 implementations · 19/19 complete

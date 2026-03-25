@@ -28,6 +28,7 @@ calculator state.
 - [User browses the hints pane to find an operation](./browse-hints-pane/usecase.md)
 - [User executes an operation via chord sequence](./execute-chord-operation/usecase.md)
 - [User applies x² and √ directly without a chord prefix](./direct-common-functions/usecase.md)
+- [User sees the last executed keypress and operation in the mode bar](./show-last-command/usecase.md)
 
 
 ## Status
