@@ -149,7 +149,7 @@ stateDiagram-v2
 - [tui](./tui/impl.md)
 
 ## Status
-- **State:** specified
+- **State:** implemented
 - **Created:** 2026-03-25
 - **Last reviewed:** 2026-03-25
 

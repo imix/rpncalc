@@ -26,7 +26,7 @@
 - `src/tui/widgets/mode_bar.rs` — mode bar render tests: AC-1 (single op label), AC-2 (chord label rendered), AC-5 (undo label), AC-6 (blank on session start), AC-8 (mode/settings not displaced by label), AC-9 (yank label), AC-10 (mode-change chord label), overflow truncation (label omitted when too narrow)
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-25
 - **Last verified:** 2026-03-25
 

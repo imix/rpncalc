@@ -12,7 +12,13 @@ use crate::engine::{
 };
 use crate::input::mode::AppMode;
 
-pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
+pub fn render(
+    f: &mut Frame,
+    area: Rect,
+    mode: &AppMode,
+    state: &CalcState,
+    last_command: Option<&str>,
+) {
     let mode_str = match mode {
         AppMode::Normal | AppMode::Chord(_) => "[NORMAL]",
         AppMode::Insert(_) | AppMode::AlphaStore(_) => "[INSERT]",
@@ -32,16 +38,36 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
         format!("{}  {}", state.angle_mode, state.base)
     };
 
-    let total_content = mode_str.len() + right_str.len();
-    let pad_len = (area.width as usize).saturating_sub(total_content);
-    let padding = " ".repeat(pad_len);
-
     let style = Style::default().fg(Color::Yellow);
-    let line = Line::from(vec![
-        Span::styled(mode_str, style),
-        Span::raw(padding),
-        Span::styled(right_str, style),
-    ]);
+    let width = area.width as usize;
+
+    // Show centre label only when there is enough room to avoid overlapping left or right.
+    // Minimum layout: "<left>  <centre>  <right>" — 2 spaces on each side of centre.
+    let show_centre = last_command.map_or(false, |cmd| {
+        mode_str.len() + 2 + cmd.len() + 2 + right_str.len() <= width
+    });
+
+    let line = if show_centre {
+        let cmd = last_command.unwrap();
+        let sides_len = mode_str.len() + right_str.len() + cmd.len();
+        let gap = width.saturating_sub(sides_len);
+        let left_pad = gap / 2;
+        let right_pad = gap - left_pad;
+        Line::from(vec![
+            Span::styled(mode_str, style),
+            Span::raw(" ".repeat(left_pad)),
+            Span::styled(cmd, style),
+            Span::raw(" ".repeat(right_pad)),
+            Span::styled(right_str, style),
+        ])
+    } else {
+        let pad_len = width.saturating_sub(mode_str.len() + right_str.len());
+        Line::from(vec![
+            Span::styled(mode_str, style),
+            Span::raw(" ".repeat(pad_len)),
+            Span::styled(right_str, style),
+        ])
+    };
 
     f.render_widget(Paragraph::new(line), area);
 }
@@ -58,9 +84,20 @@ mod tests {
     use ratatui::{backend::TestBackend, Terminal};
 
     fn render_mode_bar(mode: &AppMode, state: &CalcState, width: u16) -> ratatui::buffer::Buffer {
+        render_mode_bar_with_cmd(mode, state, width, None)
+    }
+
+    fn render_mode_bar_with_cmd(
+        mode: &AppMode,
+        state: &CalcState,
+        width: u16,
+        last_command: Option<&str>,
+    ) -> ratatui::buffer::Buffer {
         let backend = TestBackend::new(width, 1);
         let mut terminal = Terminal::new(backend).unwrap();
-        terminal.draw(|f| render(f, f.area(), mode, state)).unwrap();
+        terminal
+            .draw(|f| render(f, f.area(), mode, state, last_command))
+            .unwrap();
         terminal.backend().buffer().clone()
     }
 
@@ -244,6 +281,134 @@ mod tests {
         assert!(
             content.contains("[BROWSE]"),
             "browse mode should show '[BROWSE]': {:?}",
+            content
+        );
+    }
+
+    // AC-6: session start — no last command shows blank centre
+    #[test]
+    fn test_session_start_centre_blank() {
+        let state = CalcState::new();
+        let buf = render_mode_bar(&AppMode::Normal, &state, 40);
+        let content = row_content(&buf, 0);
+        assert!(
+            content.contains("[NORMAL]"),
+            "mode indicator present: {:?}",
+            content
+        );
+        assert!(
+            !content.contains("→"),
+            "no last-command arrow when centre is blank: {:?}",
+            content
+        );
+    }
+
+    // AC-1: single-key op label appears in centre
+    #[test]
+    fn test_single_op_label_shown() {
+        let state = CalcState::new();
+        let buf = render_mode_bar_with_cmd(&AppMode::Normal, &state, 40, Some("+ → add"));
+        let content = row_content(&buf, 0);
+        assert!(
+            content.contains("+ → add"),
+            "last-command label should appear: {:?}",
+            content
+        );
+    }
+
+    // AC-2: chord label appears in centre
+    #[test]
+    fn test_chord_label_shown() {
+        let state = CalcState::new();
+        let buf = render_mode_bar_with_cmd(&AppMode::Normal, &state, 40, Some("rf → floor"));
+        let content = row_content(&buf, 0);
+        assert!(
+            content.contains("rf → floor"),
+            "chord label should appear: {:?}",
+            content
+        );
+    }
+
+    // AC-5: undo label
+    #[test]
+    fn test_undo_label_shown() {
+        let state = CalcState::new();
+        let buf = render_mode_bar_with_cmd(&AppMode::Normal, &state, 40, Some("u → undo"));
+        let content = row_content(&buf, 0);
+        assert!(
+            content.contains("u → undo"),
+            "undo label should appear: {:?}",
+            content
+        );
+    }
+
+    // AC-9: yank label
+    #[test]
+    fn test_yank_label_shown() {
+        let state = CalcState::new();
+        let buf = render_mode_bar_with_cmd(&AppMode::Normal, &state, 40, Some("y → copy"));
+        let content = row_content(&buf, 0);
+        assert!(
+            content.contains("y → copy"),
+            "yank label should appear: {:?}",
+            content
+        );
+    }
+
+    // AC-10: mode-change chord label
+    #[test]
+    fn test_mode_change_chord_label_shown() {
+        let state = CalcState::new();
+        let buf = render_mode_bar_with_cmd(&AppMode::Normal, &state, 40, Some("md → deg"));
+        let content = row_content(&buf, 0);
+        assert!(
+            content.contains("md → deg"),
+            "mode-change chord label should appear: {:?}",
+            content
+        );
+    }
+
+    // AC-8: mode indicator (left) and settings (right) not displaced by label
+    #[test]
+    fn test_sides_not_displaced_by_label() {
+        let state = CalcState::new(); // defaults: DEG, DEC
+        let buf = render_mode_bar_with_cmd(&AppMode::Normal, &state, 60, Some("+ → add"));
+        let content = row_content(&buf, 0);
+        assert!(
+            content.starts_with("[NORMAL]"),
+            "mode indicator must be at left: {:?}",
+            content
+        );
+        assert!(
+            content.contains("DEG  DEC"),
+            "settings must appear on right: {:?}",
+            content
+        );
+        // Verify settings are actually rightmost: no non-space chars after the settings block
+        let trimmed = content.trim_end();
+        assert!(
+            trimmed.ends_with("DEG  DEC"),
+            "settings should be rightmost content: {:?}",
+            content
+        );
+    }
+
+    // Error condition: label too wide → omitted entirely, no partial display
+    #[test]
+    fn test_label_omitted_when_too_narrow() {
+        let state = CalcState::new();
+        // "[NORMAL]" = 8, "RAD  DEC" = 8, "rf → floor" = 10 → need ≥ 32 cols (8+2+10+2+8+2border)
+        // Use a width of 20 — too narrow for the label.
+        let buf = render_mode_bar_with_cmd(&AppMode::Normal, &state, 20, Some("rf → floor"));
+        let content = row_content(&buf, 0);
+        assert!(
+            !content.contains("rf → floor"),
+            "label should be omitted when too narrow, got: {:?}",
+            content
+        );
+        assert!(
+            content.contains("[NORMAL]"),
+            "mode indicator still present: {:?}",
             content
         );
     }

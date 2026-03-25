@@ -69,7 +69,7 @@ pub fn render(f: &mut Frame, app: &App) {
     error_line::render(f, outer[2], app.error_message.as_deref());
     // Separator between content area and mode bar
     f.render_widget(Block::default().borders(Borders::TOP), outer[3]);
-    mode_bar::render(f, outer[4], &app.mode, &app.state);
+    mode_bar::render(f, outer[4], &app.mode, &app.state, app.last_command.as_deref());
 }
 
 #[cfg(test)]

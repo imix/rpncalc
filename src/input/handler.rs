@@ -96,6 +96,181 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
     }
 }
 
+/// Returns the human-readable label for a key event if it updates the last-command display,
+/// or `None` if the key does not update the display (chord leaders, insert chars, navigation, etc.).
+/// Must be called before `App::apply` so the mode still reflects the pre-action state.
+pub fn command_label(mode: &AppMode, event: KeyEvent) -> Option<String> {
+    match mode {
+        AppMode::Normal => match event.code {
+            KeyCode::Char('+') => Some(format!("+ → {}", op_name(Op::Add))),
+            KeyCode::Char('-') => Some(format!("- → {}", op_name(Op::Sub))),
+            KeyCode::Char('*') => Some(format!("* → {}", op_name(Op::Mul))),
+            KeyCode::Char('/') => Some(format!("/ → {}", op_name(Op::Div))),
+            KeyCode::Char('^') => Some(format!("^ → {}", op_name(Op::Pow))),
+            KeyCode::Char('%') => Some(format!("% → {}", op_name(Op::Mod))),
+            KeyCode::Char('!') => Some(format!("! → {}", op_name(Op::Factorial))),
+            KeyCode::Char('s') => Some(format!("s → {}", op_name(Op::Swap))),
+            KeyCode::Char('d') => Some(format!("d → {}", op_name(Op::Drop))),
+            KeyCode::Char('p') => Some(format!("p → {}", op_name(Op::Dup))),
+            KeyCode::Char('R') => Some(format!("R → {}", op_name(Op::Rotate))),
+            KeyCode::Char('n') => Some(format!("n → {}", op_name(Op::Negate))),
+            KeyCode::Char('q') => Some(format!("q → {}", op_name(Op::Square))),
+            KeyCode::Char('w') => Some(format!("w → {}", op_name(Op::Sqrt))),
+            KeyCode::Char('u') => Some("u → undo".to_string()),
+            KeyCode::Char('r') if event.modifiers.contains(KeyModifiers::CONTROL) => {
+                Some("^r → redo".to_string())
+            }
+            KeyCode::Char('y') => Some("y → copy".to_string()),
+            KeyCode::Enter => Some("↵ → dup".to_string()),
+            // chord leaders, S, i, Q, Up: do not update label
+            _ => None,
+        },
+        AppMode::Chord(category) => match event.code {
+            KeyCode::Char(c) => {
+                let leader = chord_leader_char(category);
+                let label = chord_op_label(category, c)?;
+                Some(format!("{}{} → {}", leader, c, label))
+            }
+            _ => None,
+        },
+        AppMode::Insert(_) => match event.code {
+            KeyCode::Char('+') => Some(format!("+ → {}", op_name(Op::Add))),
+            KeyCode::Char('-') => Some(format!("- → {}", op_name(Op::Sub))),
+            KeyCode::Char('*') => Some(format!("* → {}", op_name(Op::Mul))),
+            KeyCode::Char('/') => Some(format!("/ → {}", op_name(Op::Div))),
+            KeyCode::Char('^') => Some(format!("^ → {}", op_name(Op::Pow))),
+            KeyCode::Char('%') => Some(format!("% → {}", op_name(Op::Mod))),
+            KeyCode::Char('!') => Some(format!("! → {}", op_name(Op::Factorial))),
+            KeyCode::Char('n') => Some(format!("n → {}", op_name(Op::Negate))),
+            KeyCode::Char('q') => Some(format!("q → {}", op_name(Op::Square))),
+            KeyCode::Char('w') => Some(format!("w → {}", op_name(Op::Sqrt))),
+            KeyCode::Char('s') => Some(format!("s → {}", op_name(Op::Swap))),
+            KeyCode::Char('d') => Some(format!("d → {}", op_name(Op::Drop))),
+            KeyCode::Char('p') => Some(format!("p → {}", op_name(Op::Dup))),
+            KeyCode::Char('r') | KeyCode::Char('R') => Some(format!("r → {}", op_name(Op::Rotate))),
+            // InsertChar, Enter (submit), Esc (cancel), Backspace: do not update label
+            _ => None,
+        },
+        // Alpha, AlphaStore, Browse: no label updates
+        _ => None,
+    }
+}
+
+fn chord_leader_char(category: &ChordCategory) -> char {
+    match category {
+        ChordCategory::Trig => 't',
+        ChordCategory::Log => 'l',
+        ChordCategory::Functions => 'f',
+        ChordCategory::Constants => 'c',
+        ChordCategory::AngleMode => 'm',
+        ChordCategory::Base => 'x',
+        ChordCategory::HexStyle => 'X',
+        ChordCategory::Rounding => 'r',
+    }
+}
+
+fn chord_op_label(category: &ChordCategory, c: char) -> Option<&'static str> {
+    match category {
+        ChordCategory::Trig => match c {
+            's' => Some("sin"),
+            'c' => Some("cos"),
+            'a' => Some("tan"),
+            'S' => Some("asin"),
+            'C' => Some("acos"),
+            'A' => Some("atan"),
+            _ => None,
+        },
+        ChordCategory::Log => match c {
+            'l' => Some("ln"),
+            'L' => Some("log₁₀"),
+            'e' => Some("eˣ"),
+            'E' => Some("10ˣ"),
+            _ => None,
+        },
+        ChordCategory::Functions => match c {
+            's' => Some("√x"),
+            'q' => Some("x²"),
+            'r' => Some("1/x"),
+            'a' => Some("|x|"),
+            _ => None,
+        },
+        ChordCategory::Constants => match c {
+            'p' => Some("π"),
+            'e' => Some("e"),
+            'g' => Some("φ"),
+            _ => None,
+        },
+        ChordCategory::AngleMode => match c {
+            'd' => Some("deg"),
+            'r' => Some("rad"),
+            'g' => Some("grad"),
+            _ => None,
+        },
+        ChordCategory::Base => match c {
+            'c' => Some("dec"),
+            'h' => Some("hex"),
+            'o' => Some("oct"),
+            'b' => Some("bin"),
+            _ => None,
+        },
+        ChordCategory::HexStyle => match c {
+            'c' => Some("0xFF"),
+            'a' => Some("$FF"),
+            's' => Some("#FF"),
+            'i' => Some("FFh"),
+            _ => None,
+        },
+        ChordCategory::Rounding => match c {
+            'f' => Some("floor"),
+            'c' => Some("ceil"),
+            't' => Some("trunc"),
+            'r' => Some("round"),
+            's' => Some("sign"),
+            _ => None,
+        },
+    }
+}
+
+fn op_name(op: Op) -> &'static str {
+    match op {
+        Op::Add => "add",
+        Op::Sub => "sub",
+        Op::Mul => "mul",
+        Op::Div => "div",
+        Op::Pow => "pow",
+        Op::Mod => "mod",
+        Op::Negate => "neg",
+        Op::Sqrt => "√x",
+        Op::Square => "x²",
+        Op::Reciprocal => "1/x",
+        Op::Abs => "|x|",
+        Op::Factorial => "fact",
+        Op::Sin => "sin",
+        Op::Cos => "cos",
+        Op::Tan => "tan",
+        Op::Asin => "asin",
+        Op::Acos => "acos",
+        Op::Atan => "atan",
+        Op::Ln => "ln",
+        Op::Log10 => "log₁₀",
+        Op::Exp => "eˣ",
+        Op::Exp10 => "10ˣ",
+        Op::Swap => "swap",
+        Op::Dup => "dup",
+        Op::Drop => "drop",
+        Op::Rotate => "rot",
+        Op::Floor => "floor",
+        Op::Ceil => "ceil",
+        Op::Trunc => "trunc",
+        Op::Round => "round",
+        Op::Sign => "sign",
+        Op::PushPi => "π",
+        Op::PushE => "e",
+        Op::PushPhi => "φ",
+        _ => "?",
+    }
+}
+
 fn dispatch_chord_key(category: &ChordCategory, c: char) -> Action {
     match category {
         ChordCategory::Trig => match c {
@@ -842,5 +1017,98 @@ mod tests {
             handle_key(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('s'))),
             Action::Execute(Op::Sign)
         );
+    }
+
+    // AC-1: single-key op returns label
+    #[test]
+    fn test_command_label_single_op() {
+        let label = command_label(&AppMode::Normal, key(KeyCode::Char('+')));
+        assert_eq!(label.as_deref(), Some("+ → add"));
+    }
+
+    // AC-2: chord second key returns two-key label
+    #[test]
+    fn test_command_label_chord_two_keys() {
+        let label = command_label(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('f')));
+        assert_eq!(label.as_deref(), Some("rf → floor"));
+    }
+
+    // AC-2: mode-change chord returns label
+    #[test]
+    fn test_command_label_chord_mode_change() {
+        let label = command_label(&AppMode::Chord(ChordCategory::AngleMode), key(KeyCode::Char('d')));
+        assert_eq!(label.as_deref(), Some("md → deg"));
+    }
+
+    // AC-3: label returned regardless of stack state (key event only, not result)
+    #[test]
+    fn test_command_label_returned_for_any_key() {
+        // command_label checks the key, not whether the op will succeed
+        let label = command_label(&AppMode::Normal, key(KeyCode::Char('+')));
+        assert!(label.is_some(), "label returned even if stack would be empty");
+    }
+
+    // AC-4: navigation keys do not return a label
+    #[test]
+    fn test_command_label_navigation_returns_none() {
+        assert_eq!(command_label(&AppMode::Normal, key(KeyCode::Up)), None);
+        assert_eq!(command_label(&AppMode::Browse(2), key(KeyCode::Enter)), None);
+        assert_eq!(command_label(&AppMode::Browse(2), key(KeyCode::Up)), None);
+    }
+
+    // AC-5: undo returns label
+    #[test]
+    fn test_command_label_undo() {
+        let label = command_label(&AppMode::Normal, key(KeyCode::Char('u')));
+        assert_eq!(label.as_deref(), Some("u → undo"));
+    }
+
+    // redo (ctrl-r) returns label with ^ prefix
+    #[test]
+    fn test_command_label_redo() {
+        let label = command_label(&AppMode::Normal, ctrl_key('r'));
+        assert_eq!(label.as_deref(), Some("^r → redo"));
+    }
+
+    // AC-7: InsertSubmitThen op key returns label
+    #[test]
+    fn test_command_label_insert_submit_then() {
+        let label = command_label(&AppMode::Insert(String::new()), key(KeyCode::Char('+')));
+        assert_eq!(label.as_deref(), Some("+ → add"));
+    }
+
+    // AC-9: yank returns copy label
+    #[test]
+    fn test_command_label_yank() {
+        let label = command_label(&AppMode::Normal, key(KeyCode::Char('y')));
+        assert_eq!(label.as_deref(), Some("y → copy"));
+    }
+
+    // Enter in Normal mode → dup
+    #[test]
+    fn test_command_label_enter_normal_dup() {
+        let label = command_label(&AppMode::Normal, key(KeyCode::Enter));
+        assert_eq!(label.as_deref(), Some("↵ → dup"));
+    }
+
+    // AC-11: EnterStoreMode (S) does not return a label
+    #[test]
+    fn test_command_label_enter_store_mode_none() {
+        let label = command_label(&AppMode::Normal, key(KeyCode::Char('S')));
+        assert_eq!(label, None, "EnterStoreMode should not update label");
+    }
+
+    // Chord leader key (r in Normal) does not return a label
+    #[test]
+    fn test_command_label_chord_leader_none() {
+        let label = command_label(&AppMode::Normal, key(KeyCode::Char('r')));
+        assert_eq!(label, None, "chord leader should not update label");
+    }
+
+    // Invalid chord key returns None (ChordInvalid does not update label)
+    #[test]
+    fn test_command_label_invalid_chord_none() {
+        let label = command_label(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('z')));
+        assert_eq!(label, None);
     }
 }

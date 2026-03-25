@@ -88,8 +88,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // 16ms timeout: ≤16ms keypress latency (within NFR2's 50ms budget), ~0% CPU when idle
         if event::poll(Duration::from_millis(16))? {
             if let Event::Key(key) = event::read()? {
+                let label = handler::command_label(&app.mode, key);
                 let action = handler::handle_key(&app.mode, key);
                 app.apply(action);
+                if let Some(lbl) = label {
+                    app.last_command = Some(lbl);
+                }
             }
         }
 

@@ -40,6 +40,7 @@ pub struct App {
     pub error_message: Option<String>,
     pub should_quit: bool,
     pub precision: usize,
+    pub last_command: Option<String>,
 }
 
 impl App {
@@ -55,6 +56,7 @@ impl App {
             error_message: None,
             should_quit: false,
             precision: config.precision,
+            last_command: None,
         }
     }
 
