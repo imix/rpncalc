@@ -145,6 +145,9 @@ stateDiagram-v2
 - When the user presses `S` (entering store-name mode)
 - Then the mode bar centre still shows `+ → add` (unchanged)
 
+## Implementations <!-- taproot-managed -->
+- [tui](./tui/impl.md)
+
 ## Status
 - **State:** specified
 - **Created:** 2026-03-25
