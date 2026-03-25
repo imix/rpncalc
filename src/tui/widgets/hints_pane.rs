@@ -26,10 +26,11 @@ const STACK_OPS: &[(&str, &str)] = &[
     ("s", "swap"),
     ("d", "drop"),
     ("p", "dup"),
-    ("r", "rot"),
+    ("R", "rot"),
     ("u", "undo"),
     ("y", "yank"),
     ("S", "store"),
+    ("Q", "quit"),
 ];
 
 const TRIG_OPS: &[(&str, &str)] = &[
@@ -53,10 +54,19 @@ const BASE_OPS: &[(&str, &str)] = &[("c", "dec"), ("h", "hex"), ("o", "oct"), ("
 
 const HEX_STYLE_OPS: &[(&str, &str)] = &[("c", "0xFF"), ("a", "$FF"), ("s", "#FF"), ("i", "FFh")];
 
+const ROUNDING_OPS: &[(&str, &str)] = &[
+    ("f", "⌊x⌋"),
+    ("c", "⌈x⌉"),
+    ("t", "trunc"),
+    ("r", "RND↓"),
+    ("s", "sgn"),
+];
+
 const CHORD_LEADERS: &[(&str, &str)] = &[
     ("t", "trig"),
     ("l", "log"),
     ("f", "√"),
+    ("r", "round"),
     ("c", "const"),
     ("m", "mode"),
     ("x", "base"),
@@ -160,6 +170,7 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
             Line::raw("q  x²    w  √"),
             Line::raw("s  swap   d  drop"),
             Line::raw("p  dup    r  rot"),
+            Line::raw("Q  quit"),
         ];
         f.render_widget(Paragraph::new(lines), area);
         return;
@@ -186,6 +197,7 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
             ChordCategory::AngleMode => ("[MODE]", ANGLE_OPS),
             ChordCategory::Base => ("[BASE]", BASE_OPS),
             ChordCategory::HexStyle => ("[HEX]", HEX_STYLE_OPS),
+            ChordCategory::Rounding => ("[ROUND]", ROUNDING_OPS),
         };
         let mut lines: Vec<Line<'static>> = vec![Line::styled(header, dim)];
         lines.extend(entries_to_lines(ops));
@@ -648,6 +660,60 @@ mod tests {
         assert!(content.contains("cancel"), "Browse mode should show 'cancel' hint");
         assert!(!content.contains("ARITHMETIC"), "Browse mode should not show normal mode hints");
         assert!(!content.contains("STACK"), "Browse mode should not show stack ops section");
+    }
+
+    // ── apply-rounding-and-sign-ops ──────────────────────────────────────────
+
+    // AC-10: r› chord leader appears in Normal hints at depth ≥ 1
+    #[test]
+    fn test_depth1_shows_rounding_chord_leader() {
+        let buf = render_hints(AppMode::Normal, state_with_depth(1), 40, 20);
+        let content = full_content(&buf);
+        assert!(content.contains("round"), "r› chord leader should show 'round' at depth≥1");
+    }
+
+    // AC-10: Q  quit appears in Normal STACK hints
+    #[test]
+    fn test_normal_mode_shows_quit_hint() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 20);
+        let content = full_content(&buf);
+        assert!(content.contains('Q'), "Q key should appear in normal mode hints");
+        assert!(content.contains("quit"), "quit label should appear in normal mode hints");
+    }
+
+    // Rounding chord submenu renders with [ROUND] header
+    #[test]
+    fn test_rounding_chord_shows_header() {
+        let buf = render_hints(
+            AppMode::Chord(ChordCategory::Rounding),
+            CalcState::new(),
+            40,
+            10,
+        );
+        let content = full_content(&buf);
+        assert!(content.contains("[ROUND]"), "Rounding chord should show [ROUND] header");
+    }
+
+    // Rounding chord submenu shows floor/ceil entries
+    #[test]
+    fn test_rounding_chord_shows_ops() {
+        let buf = render_hints(
+            AppMode::Chord(ChordCategory::Rounding),
+            CalcState::new(),
+            40,
+            10,
+        );
+        let content = full_content(&buf);
+        assert!(content.contains("trunc"), "Rounding chord should show trunc");
+        assert!(content.contains("sgn"), "Rounding chord should show sgn");
+    }
+
+    // r› not shown at depth 0 (all rounding ops need stack items)
+    #[test]
+    fn test_depth0_hides_rounding_chord_leader() {
+        let buf = render_hints(AppMode::Normal, CalcState::new(), 40, 20);
+        let content = full_content(&buf);
+        assert!(!content.contains("round"), "r› chord should not show at depth 0");
     }
 
     // AlphaStore mode does NOT show register section

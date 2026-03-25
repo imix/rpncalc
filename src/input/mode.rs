@@ -8,6 +8,7 @@ pub enum ChordCategory {
     AngleMode,
     Base,
     HexStyle,
+    Rounding,
 }
 
 #[derive(Debug, Clone, PartialEq)]

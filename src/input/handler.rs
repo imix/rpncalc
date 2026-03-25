@@ -27,7 +27,8 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Char('s') => Action::Execute(Op::Swap),
             KeyCode::Char('d') => Action::Execute(Op::Drop),
             KeyCode::Char('p') => Action::Execute(Op::Dup),
-            KeyCode::Char('r') => Action::Execute(Op::Rotate),
+            KeyCode::Char('R') => Action::Execute(Op::Rotate),
+            KeyCode::Char('r') => Action::EnterChordMode(ChordCategory::Rounding),
             KeyCode::Char('n') => Action::Execute(Op::Negate),
             KeyCode::Char('u') => Action::Undo,
             KeyCode::Char('y') => Action::Yank,
@@ -67,6 +68,7 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Char('d') => Action::InsertSubmitThen(Op::Drop),
             KeyCode::Char('p') => Action::InsertSubmitThen(Op::Dup),
             KeyCode::Char('r') => Action::InsertSubmitThen(Op::Rotate),
+            KeyCode::Char('R') => Action::InsertSubmitThen(Op::Rotate),
             KeyCode::Char(c) => Action::InsertChar(c),
             _ => Action::Noop,
         },
@@ -143,6 +145,14 @@ fn dispatch_chord_key(category: &ChordCategory, c: char) -> Action {
             'a' => Action::SetHexStyle(HexStyle::Dollar),
             's' => Action::SetHexStyle(HexStyle::Hash),
             'i' => Action::SetHexStyle(HexStyle::Suffix),
+            _ => Action::ChordInvalid,
+        },
+        ChordCategory::Rounding => match c {
+            'f' => Action::Execute(Op::Floor),
+            'c' => Action::Execute(Op::Ceil),
+            't' => Action::Execute(Op::Trunc),
+            'r' => Action::Execute(Op::Round),
+            's' => Action::Execute(Op::Sign),
             _ => Action::ChordInvalid,
         },
     }
@@ -234,7 +244,7 @@ mod tests {
             ('s', Action::Execute(Op::Swap)),
             ('d', Action::Execute(Op::Drop)),
             ('p', Action::Execute(Op::Dup)),
-            ('r', Action::Execute(Op::Rotate)),
+            ('R', Action::Execute(Op::Rotate)),
             ('n', Action::Execute(Op::Negate)),
         ];
         for (c, expected) in &cases {
@@ -258,12 +268,12 @@ mod tests {
         assert_eq!(handle_key(&AppMode::Normal, ctrl_key('r')), Action::Redo);
     }
 
-    // 'r' without Ctrl → Rotate (not Redo)
+    // 'r' without Ctrl → enters Rounding chord (not Redo, not Rotate)
     #[test]
-    fn test_normal_r_without_ctrl_is_rotate() {
+    fn test_normal_r_without_ctrl_is_rounding_chord() {
         assert_eq!(
             handle_key(&AppMode::Normal, key(KeyCode::Char('r'))),
-            Action::Execute(Op::Rotate)
+            Action::EnterChordMode(ChordCategory::Rounding)
         );
     }
 
@@ -762,5 +772,75 @@ mod tests {
                 code
             );
         }
+    }
+
+    // ── Rounding chord (apply-rounding-and-sign-ops) ─────────────────────────
+
+    // r in Normal → enters Rounding chord
+    #[test]
+    fn test_normal_r_enters_rounding_chord() {
+        assert_eq!(
+            handle_key(&AppMode::Normal, key(KeyCode::Char('r'))),
+            Action::EnterChordMode(ChordCategory::Rounding)
+        );
+    }
+
+    // R in Normal → Rotate (rebind)
+    #[test]
+    fn test_normal_shift_r_rotates() {
+        assert_eq!(
+            handle_key(&AppMode::Normal, key(KeyCode::Char('R'))),
+            Action::Execute(Op::Rotate)
+        );
+    }
+
+    // AC-14: Esc in Rounding chord → ChordCancel
+    #[test]
+    fn test_rounding_chord_esc_cancels() {
+        assert_eq!(
+            handle_key(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Esc)),
+            Action::ChordCancel
+        );
+    }
+
+    // Rounding chord second keys dispatch correctly
+    #[test]
+    fn test_rounding_chord_floor() {
+        assert_eq!(
+            handle_key(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('f'))),
+            Action::Execute(Op::Floor)
+        );
+    }
+
+    #[test]
+    fn test_rounding_chord_ceil() {
+        assert_eq!(
+            handle_key(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('c'))),
+            Action::Execute(Op::Ceil)
+        );
+    }
+
+    #[test]
+    fn test_rounding_chord_trunc() {
+        assert_eq!(
+            handle_key(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('t'))),
+            Action::Execute(Op::Trunc)
+        );
+    }
+
+    #[test]
+    fn test_rounding_chord_round() {
+        assert_eq!(
+            handle_key(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('r'))),
+            Action::Execute(Op::Round)
+        );
+    }
+
+    #[test]
+    fn test_rounding_chord_sign() {
+        assert_eq!(
+            handle_key(&AppMode::Chord(ChordCategory::Rounding), key(KeyCode::Char('s'))),
+            Action::Execute(Op::Sign)
+        );
     }
 }

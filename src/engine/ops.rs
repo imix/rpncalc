@@ -49,6 +49,12 @@ pub enum Op {
     Drop,
     Rotate,
     Clear,
+    // Rounding / sign
+    Floor,
+    Ceil,
+    Trunc,
+    Round,
+    Sign,
     // Constants
     PushPi,
     PushE,
@@ -120,6 +126,12 @@ pub fn apply_op(state: &mut CalcState, op: Op) -> Result<(), CalcError> {
             state.clear();
             Ok(())
         }
+        // Rounding / sign
+        Op::Floor => unary_op(state, do_floor),
+        Op::Ceil => unary_op(state, do_ceil),
+        Op::Trunc => unary_op(state, do_trunc),
+        Op::Sign => unary_op(state, do_sign),
+        Op::Round => binary_op(state, do_round),
         // Constants
         Op::PushPi => {
             state.push(constants::pi());
@@ -446,6 +458,104 @@ fn do_exp10(v: CalcValue) -> Result<CalcValue, CalcError> {
         ));
     }
     Ok(CalcValue::from_f64(result))
+}
+
+fn do_floor(v: CalcValue) -> Result<CalcValue, CalcError> {
+    match v {
+        CalcValue::Integer(_) => Ok(v),
+        CalcValue::Float(f) => {
+            let x = f.to_f64().value();
+            if !x.is_finite() {
+                return Err(CalcError::DomainError("value not finite".to_string()));
+            }
+            Ok(CalcValue::from_f64(x.floor()))
+        }
+    }
+}
+
+fn do_ceil(v: CalcValue) -> Result<CalcValue, CalcError> {
+    match v {
+        CalcValue::Integer(_) => Ok(v),
+        CalcValue::Float(f) => {
+            let x = f.to_f64().value();
+            if !x.is_finite() {
+                return Err(CalcError::DomainError("value not finite".to_string()));
+            }
+            Ok(CalcValue::from_f64(x.ceil()))
+        }
+    }
+}
+
+fn do_trunc(v: CalcValue) -> Result<CalcValue, CalcError> {
+    match v {
+        CalcValue::Integer(_) => Ok(v),
+        CalcValue::Float(f) => {
+            let x = f.to_f64().value();
+            if !x.is_finite() {
+                return Err(CalcError::DomainError("value not finite".to_string()));
+            }
+            Ok(CalcValue::from_f64(x.trunc()))
+        }
+    }
+}
+
+fn do_sign(v: CalcValue) -> Result<CalcValue, CalcError> {
+    match v {
+        CalcValue::Integer(ref x) => {
+            if *x < IBig::ZERO {
+                Ok(CalcValue::Integer(IBig::from(-1i32)))
+            } else if *x == IBig::ZERO {
+                Ok(CalcValue::Integer(IBig::ZERO))
+            } else {
+                Ok(CalcValue::Integer(IBig::from(1i32)))
+            }
+        }
+        CalcValue::Float(f) => {
+            let x = f.to_f64().value();
+            if x < 0.0 {
+                Ok(CalcValue::Integer(IBig::from(-1i32)))
+            } else if x == 0.0 {
+                Ok(CalcValue::Integer(IBig::ZERO))
+            } else {
+                Ok(CalcValue::Integer(IBig::from(1i32)))
+            }
+        }
+    }
+}
+
+/// Round `value` to `precision` decimal places.
+/// Precision may be negative (rounds to nearest 10^|n|).
+/// Precision must be integer-valued.
+fn do_round(value: CalcValue, precision: CalcValue) -> Result<CalcValue, CalcError> {
+    let n: i32 = match &precision {
+        CalcValue::Integer(i) => i
+            .to_string()
+            .parse::<i32>()
+            .map_err(|_| CalcError::DomainError("precision out of range".to_string()))?,
+        CalcValue::Float(f) => {
+            let x = f.to_f64().value();
+            if x.fract() != 0.0 {
+                return Err(CalcError::NotAnInteger);
+            }
+            x as i32
+        }
+    };
+    match value {
+        CalcValue::Integer(_) if n >= 0 => Ok(value),
+        CalcValue::Integer(ref i) => {
+            let scale = 10f64.powi(-n);
+            let v = i.to_string().parse::<f64>().unwrap_or(0.0);
+            Ok(CalcValue::from_f64((v / scale).round() * scale))
+        }
+        CalcValue::Float(f) => {
+            let x = f.to_f64().value();
+            if !x.is_finite() {
+                return Err(CalcError::DomainError("value not finite".to_string()));
+            }
+            let scale = 10f64.powi(n);
+            Ok(CalcValue::from_f64((x * scale).round() / scale))
+        }
+    }
 }
 
 fn int_to_fbig(n: &IBig) -> FBig {
@@ -984,5 +1094,151 @@ mod tests {
         let err = apply_op(&mut s, Op::Swap).unwrap_err();
         assert!(matches!(err, CalcError::StackUnderflow));
         assert_eq!(s.depth(), 1);
+    }
+
+    // ── Rounding / sign ops ──────────────────────────────────────────────────
+
+    // AC-1: FLOOR rounds positive float down
+    #[test]
+    fn test_floor_positive_float() {
+        let mut s = CalcState::new();
+        s.push(float(2.7));
+        apply_op(&mut s, Op::Floor).unwrap();
+        assert!(approx_eq(top_f64(&s), 2.0));
+        assert_eq!(s.depth(), 1);
+    }
+
+    // AC-2: FLOOR of negative float rounds toward −∞ (not toward zero)
+    #[test]
+    fn test_floor_negative_float() {
+        let mut s = CalcState::new();
+        s.push(float(-2.3));
+        apply_op(&mut s, Op::Floor).unwrap();
+        assert!(approx_eq(top_f64(&s), -3.0), "floor(-2.3) should be -3");
+    }
+
+    // FLOOR of integer is identity
+    #[test]
+    fn test_floor_integer_identity() {
+        let mut s = state_with(&[5]);
+        apply_op(&mut s, Op::Floor).unwrap();
+        assert_eq!(s.peek(), Some(&int(5)));
+    }
+
+    // AC-3: CEIL rounds positive float up
+    #[test]
+    fn test_ceil_positive_float() {
+        let mut s = CalcState::new();
+        s.push(float(2.1));
+        apply_op(&mut s, Op::Ceil).unwrap();
+        assert!(approx_eq(top_f64(&s), 3.0));
+    }
+
+    // CEIL of negative float rounds toward zero
+    #[test]
+    fn test_ceil_negative_float() {
+        let mut s = CalcState::new();
+        s.push(float(-2.3));
+        apply_op(&mut s, Op::Ceil).unwrap();
+        assert!(approx_eq(top_f64(&s), -2.0), "ceil(-2.3) should be -2");
+    }
+
+    // AC-4: TRUNC truncates toward zero (not same as floor for negatives)
+    #[test]
+    fn test_trunc_negative_float() {
+        let mut s = CalcState::new();
+        s.push(float(-2.7));
+        apply_op(&mut s, Op::Trunc).unwrap();
+        assert!(approx_eq(top_f64(&s), -2.0), "trunc(-2.7) should be -2, not -3");
+    }
+
+    #[test]
+    fn test_trunc_positive_float() {
+        let mut s = CalcState::new();
+        s.push(float(3.9));
+        apply_op(&mut s, Op::Trunc).unwrap();
+        assert!(approx_eq(top_f64(&s), 3.0));
+    }
+
+    // AC-5: ROUND rounds to n decimal places (positive precision)
+    #[test]
+    fn test_round_positive_precision() {
+        let mut s = CalcState::new();
+        s.push(float(3.14159));
+        s.push(int(3)); // precision = 3
+        apply_op(&mut s, Op::Round).unwrap();
+        assert!(approx_eq(top_f64(&s), 3.142), "round(3.14159, 3) should be 3.142");
+        assert_eq!(s.depth(), 1);
+    }
+
+    // AC-6: ROUND with negative precision rounds to power of 10
+    #[test]
+    fn test_round_negative_precision() {
+        let mut s = CalcState::new();
+        s.push(float(1234.5));
+        s.push(int(-2)); // round to nearest 100
+        apply_op(&mut s, Op::Round).unwrap();
+        assert!(approx_eq(top_f64(&s), 1200.0), "round(1234.5, -2) should be 1200");
+        assert_eq!(s.depth(), 1);
+    }
+
+    // AC-7: SIGN of negative value returns −1
+    #[test]
+    fn test_sign_negative() {
+        let mut s = CalcState::new();
+        s.push(float(-5.0));
+        apply_op(&mut s, Op::Sign).unwrap();
+        assert_eq!(s.peek(), Some(&int(-1)));
+    }
+
+    // AC-8: SIGN of zero returns 0
+    #[test]
+    fn test_sign_zero() {
+        let mut s = state_with(&[0]);
+        apply_op(&mut s, Op::Sign).unwrap();
+        assert_eq!(s.peek(), Some(&int(0)));
+    }
+
+    // AC-9: SIGN of positive value returns +1
+    #[test]
+    fn test_sign_positive() {
+        let mut s = state_with(&[42]);
+        apply_op(&mut s, Op::Sign).unwrap();
+        assert_eq!(s.peek(), Some(&int(1)));
+    }
+
+    // AC-11: stack underflow on unary rounding ops
+    #[test]
+    fn test_floor_underflow() {
+        let mut s = CalcState::new();
+        let err = apply_op(&mut s, Op::Floor).unwrap_err();
+        assert!(matches!(err, CalcError::StackUnderflow));
+    }
+
+    #[test]
+    fn test_sign_underflow() {
+        let mut s = CalcState::new();
+        let err = apply_op(&mut s, Op::Sign).unwrap_err();
+        assert!(matches!(err, CalcError::StackUnderflow));
+    }
+
+    // AC-12: ROUND underflow with only 1 item
+    #[test]
+    fn test_round_underflow_single_item() {
+        let mut s = state_with(&[3]);
+        let err = apply_op(&mut s, Op::Round).unwrap_err();
+        assert!(matches!(err, CalcError::StackUnderflow));
+        assert_eq!(s.depth(), 1);
+    }
+
+    // AC-13: ROUND with non-integer precision shows NotAnInteger error
+    #[test]
+    fn test_round_non_integer_precision() {
+        let mut s = CalcState::new();
+        s.push(float(3.14));
+        s.push(float(2.5)); // non-integer precision
+        let err = apply_op(&mut s, Op::Round).unwrap_err();
+        assert!(matches!(err, CalcError::NotAnInteger));
+        assert_eq!(s.depth(), 2); // stack unchanged
     }
 }
