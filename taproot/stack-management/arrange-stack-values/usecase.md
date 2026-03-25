@@ -12,9 +12,9 @@ User (CLI power user)
 1. User presses a single key in normal mode:
    - `s` — swap: exchanges positions 1 and 2
    - `p` — dup: duplicates position 1, pushing a copy onto the stack
-   - `d` — drop: discards position 1
+   - `d` or `Backspace` — drop: discards position 1
    - `r` — rotate: cycles top three down (1→3, 2→1, 3→2)
-   - clear — removes all values from the stack
+   - `Delete` — clear: removes all values from the stack (no error if already empty)
 2. Stack updates immediately; display reflects new arrangement
 
 ## Alternate Flows
@@ -33,8 +33,9 @@ User (CLI power user)
 ```mermaid
 stateDiagram-v2
     [*] --> Normal
-    Normal --> Normal : s/p/d/r — ok → stack updated
-    Normal --> Normal : s/p/d/r — underflow → ErrorLine
+    Normal --> Normal : s/p/d/Bksp/r — ok → stack updated
+    Normal --> Normal : s/p/d/Bksp/r — underflow → ErrorLine
+    Normal --> Normal : Delete — stack cleared
 ```
 
 ## Acceptance Criteria
@@ -48,6 +49,10 @@ stateDiagram-v2
 
 **AC-5:** Given insufficient stack depth for the chosen operation, when the key is pressed, then an error is shown on the ErrorLine and the stack is unchanged.
 
+**AC-6:** Given the stack has ≥1 item, when the user presses `Backspace` in Normal mode, then position 1 is removed (identical outcome to `d`).
+
+**AC-7:** Given any stack depth (including empty), when the user presses `Delete` in Normal mode, then all stack items are removed and the stack is empty. No error is shown when the stack is already empty.
+
 ## Related
 - **Sibling**: [User pushes a numeric value onto the stack](../push-value/usecase.md)
 - **Parent intent**: [Stack Management](../../intent.md)
@@ -59,4 +64,4 @@ stateDiagram-v2
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-21
-- **Last reviewed:** 2026-03-24
+- **Last reviewed:** 2026-03-25
