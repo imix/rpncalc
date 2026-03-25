@@ -29,3 +29,8 @@ dirs = "5"
 arboard = "3"
 toml = "~0.8"
 signal-hook = "~0.3"
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
