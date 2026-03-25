@@ -18,6 +18,8 @@
 
 ## Commits
 <!-- taproot link-commits will fill this -->
+- `2267a1569f8896382799b36e30172af1065fcb7d` — (auto-linked by taproot link-commits)
+- `cfa4c637f466ad8edd679d9c5b18a7627bea57a7` — (auto-linked by taproot link-commits)
 
 ## Tests
 This is a CI/CD pipeline configuration. All ACs are integration tests verified against live GitHub Actions runs — no local unit tests are applicable.

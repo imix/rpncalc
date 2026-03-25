@@ -23,6 +23,7 @@ Enable users on Linux and macOS to install rpncalc with a single command — no 
 - [Maintainer publishes a release via cargo-dist](./cargo-dist-release-pipeline/usecase.md)
 - [User installs rpncalc via Homebrew](./install-via-homebrew/usecase.md)
 - [User installs rpncalc via curl installer](./install-via-curl/usecase.md)
+- [User reads the project README to discover and learn rpncalc](./project-readme/usecase.md)
 
 ## Status
 - **State:** draft
