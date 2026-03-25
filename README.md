@@ -301,3 +301,9 @@ cargo build --release
 ```
 
 Requires Rust stable (1.70+).
+
+---
+
+## Built with Taproot
+
+rpncalc is developed using [Taproot](https://github.com/felixwatts/taproot) — a lightweight requirements traceability system that keeps behaviour specs, implementation records, and source code in sync. Every feature in rpncalc traces from a user-observable behaviour spec down to the commit that delivered it.
