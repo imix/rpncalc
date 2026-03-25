@@ -29,7 +29,7 @@
 - `src/config/config.rs` — add `notation` to `Config` and `ConfigToml`
 
 ## Commits
-- placeholder
+- `19300185091c1829918b2056bd607e3ac201fd79` — feat(tui)[configure-settings-chord]: implement C› config chord
 
 ## Tests
 - `src/engine/value.rs` — AC-3 (sci notation format), AC-4 (fixed), AC-5 (auto below threshold), AC-15 (auto above threshold); integer unaffected by notation

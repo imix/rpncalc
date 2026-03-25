@@ -12,7 +12,8 @@ correctly from the first keypress of every session.
 
 - **[configure-defaults](./configuration/configure-defaults/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./configuration/configure-defaults/tui/impl.md) `[complete]` (0 commits, 1 test)
-- **[configure-settings-chord](./configuration/configure-settings-chord/usecase.md)** `[specified]` — Actor: User (CLI power user)
+- **[configure-settings-chord](./configuration/configure-settings-chord/usecase.md)** `[implemented]` — Actor: User (CLI power user)
+  - [tui](./configuration/configure-settings-chord/tui/impl.md) `[complete]` (1 commit, 6 tests)
 
 ## [discoverability](./discoverability/intent.md) `[active]`
 
@@ -91,4 +92,4 @@ mistakes at any point, and store intermediate results in named registers.
   - [tui](./state-and-memory/undo-redo/tui/impl.md) `[complete]` (0 commits, 1 test)
 
 ---
-7 intents · 21 behaviours · 20 implementations · 20/20 complete
+7 intents · 21 behaviours · 21 implementations · 21/21 complete
