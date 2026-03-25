@@ -34,7 +34,8 @@ calculator state.
   - [github-actions](./distribution/cargo-dist-release-pipeline/github-actions/impl.md) `[complete]` (2 commits, 3 tests)
 - **[install-via-curl](./distribution/install-via-curl/usecase.md)** `[implemented]` — Actor: CLI power user (Linux or macOS)
   - [cargo-dist](./distribution/install-via-curl/cargo-dist/impl.md) `[complete]` (2 commits, 5 tests)
-- **[install-via-homebrew](./distribution/install-via-homebrew/usecase.md)** `[specified]` — Actor: CLI power user (macOS)
+- **[install-via-homebrew](./distribution/install-via-homebrew/usecase.md)** `[implemented]` — Actor: CLI power user (macOS)
+  - [homebrew-formula](./distribution/install-via-homebrew/homebrew-formula/impl.md) `[complete]` (2 commits, 5 tests)
 - **[project-readme](./distribution/project-readme/usecase.md)** `[implemented]` — Actor: Prospective user or new user (any platform, no rpncalc installed yet)
   - [readme](./distribution/project-readme/readme/impl.md) `[complete]` (2 commits ⚠ no tests)
 
@@ -85,4 +86,4 @@ mistakes at any point, and store intermediate results in named registers.
   - [tui](./state-and-memory/undo-redo/tui/impl.md) `[complete]` (0 commits, 1 test)
 
 ---
-7 intents · 18 behaviours · 16 implementations · 16/16 complete
+7 intents · 18 behaviours · 17 implementations · 17/17 complete

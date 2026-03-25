@@ -15,6 +15,8 @@
 
 ## Commits
 <!-- taproot link-commits will fill this -->
+- `69e6160` — declare implementation
+- `0620181` — mark complete
 
 ## Tests
 All ACs are satisfied by upstream implementations:
