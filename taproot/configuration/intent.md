@@ -24,6 +24,7 @@ correctly from the first keypress of every session.
 
 ## Behaviours <!-- taproot-managed -->
 - [User configures rpncalc defaults via config.toml](./configure-defaults/usecase.md)
+- [User configures display and calculation settings via C› chord](./configure-settings-chord/usecase.md)
 
 
 ## Status

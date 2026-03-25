@@ -12,6 +12,7 @@ correctly from the first keypress of every session.
 
 - **[configure-defaults](./configuration/configure-defaults/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./configuration/configure-defaults/tui/impl.md) `[complete]` (0 commits, 1 test)
+- **[configure-settings-chord](./configuration/configure-settings-chord/usecase.md)** `[specified]` — Actor: User (CLI power user)
 
 ## [discoverability](./discoverability/intent.md) `[active]`
 
@@ -20,12 +21,13 @@ documentation, through a context-sensitive hints pane that adapts to
 calculator state.
 
 - **[browse-hints-pane](./discoverability/browse-hints-pane/usecase.md)** `[implemented]` — Actor: User (CLI power user)
-  - [tui](./discoverability/browse-hints-pane/tui/impl.md) `[complete]` (0 commits, 2 tests)
+  - [tui](./discoverability/browse-hints-pane/tui/impl.md) `[complete]` (1 commit, 2 tests)
 - **[direct-common-functions](./discoverability/direct-common-functions/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./discoverability/direct-common-functions/tui/impl.md) `[complete]` (2 commits, 2 tests)
 - **[execute-chord-operation](./discoverability/execute-chord-operation/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./discoverability/execute-chord-operation/tui/impl.md) `[complete]` (0 commits, 1 test)
-- **[show-last-command](./discoverability/show-last-command/usecase.md)** `[specified]` — Actor: User (CLI power user)
+- **[show-last-command](./discoverability/show-last-command/usecase.md)** `[implemented]` — Actor: User (CLI power user)
+  - [tui](./discoverability/show-last-command/tui/impl.md) `[complete]` (2 commits, 2 tests)
 
 ## [distribution](./distribution/intent.md) `[draft]`
 
@@ -89,4 +91,4 @@ mistakes at any point, and store intermediate results in named registers.
   - [tui](./state-and-memory/undo-redo/tui/impl.md) `[complete]` (0 commits, 1 test)
 
 ---
-7 intents · 20 behaviours · 19 implementations · 19/19 complete
+7 intents · 21 behaviours · 20 implementations · 20/20 complete
