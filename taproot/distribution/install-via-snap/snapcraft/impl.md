@@ -13,6 +13,7 @@
 
 ## Source Files
 - `snap/snapcraft.yaml` — snap build definition: name, version, confinement, build steps
+- `.github/workflows/release.yml` — `publish-snap` job: extracts the linux tarball, builds the snap, and publishes to the Snap Store
 
 ## Commits
 - placeholder
@@ -28,8 +29,11 @@ Integration tests require snapd and Snapcraft:
 
 ## DoR Resolutions
 
+## DoD Resolutions
+- **document-current**: README.md `## Snap` section already documents `snap install rpnpad` with the snapd prerequisite — no update needed.
+
 ## Status
-- **State:** complete
+- **State:** in-progress
 - **Created:** 2026-03-25
 - **Last verified:** 2026-03-25
 
