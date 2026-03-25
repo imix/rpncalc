@@ -5,8 +5,8 @@
 
 ## Design Decisions
 - This behaviour is fully satisfied by two upstream implementations — no new source files are required:
-  1. `../../cargo-dist-release-pipeline/github-actions/impl.md` — the release pipeline generates the Homebrew formula (`rpncalc-installer.sh` and the tap formula file) and uploads binary archives; Homebrew handles OS/arch selection, checksum verification, and PATH linking (satisfies AC-2, AC-3, AC-4, AC-5)
-  2. `../../project-readme/readme/impl.md` — documents the `brew install imix/tap/rpncalc` command and the `brew tap` + `brew install` alternate path that users copy (satisfies AC-1)
+  1. `../../cargo-dist-release-pipeline/github-actions/impl.md` — the release pipeline generates the Homebrew formula (`rpnpad-installer.sh` and the tap formula file) and uploads binary archives; Homebrew handles OS/arch selection, checksum verification, and PATH linking (satisfies AC-2, AC-3, AC-4, AC-5)
+  2. `../../project-readme/readme/impl.md` — documents the `brew install imix/tap/rpnpad` command and the `brew tap` + `brew install` alternate path that users copy (satisfies AC-1)
 - The formula is generated and managed by cargo-dist; it is not hand-maintained in this repository
 - `OWNER` placeholder in the usecase notes is resolved: the real tap is `imix/tap` (Cargo.toml: `tap = "imix/homebrew-tap"`)
 

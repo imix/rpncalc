@@ -12,7 +12,7 @@
   mode bar — produces `│────│` (outer `│` + inner `─────`); true `├───┤` junction
   chars would require overwriting the outer border cells, which violates ratatui's
   widget layering model
-- Outer border title ` rpncalc ` (spaces for padding) in bold cyan — gives the app
+- Outer border title ` rpnpad ` (spaces for padding) in bold cyan — gives the app
   an identity anchor without adding a dedicated header row
 - Minimum height guard raised from 6 → 7 (4 fixed rows: input+error+separator+mode,
   plus 2 border rows, plus 1 minimum content row)

@@ -9,7 +9,7 @@
 - Invalid field values are silently ignored (no error on launch) — each
   field is matched individually; a bad value leaves the default in place
 - Config is loaded once at startup, before session restore; no hot-reload
-- Config path: `~/.rpncalc/config.toml` via `dirs::home_dir()`
+- Config path: `~/.rpnpad/config.toml` via `dirs::home_dir()`
 
 ## Source Files
 - `src/config/config.rs` — Config, ConfigToml, load_from_path(),

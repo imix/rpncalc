@@ -5,7 +5,7 @@
 
 ## Design Decisions
 - This behaviour is fully satisfied by two upstream implementations — no new source files are required:
-  1. `../../cargo-dist-release-pipeline/github-actions/impl.md` — produces the installer script (`rpncalc-installer.sh`) and platform binary archives uploaded to each GitHub Release; the installer handles OS/arch detection, archive download, SHA-256 verification, extraction to `~/.cargo/bin/`, and PATH reminder (satisfies AC-2, AC-3, AC-4, AC-5)
+  1. `../../cargo-dist-release-pipeline/github-actions/impl.md` — produces the installer script (`rpnpad-installer.sh`) and platform binary archives uploaded to each GitHub Release; the installer handles OS/arch detection, archive download, SHA-256 verification, extraction to `~/.cargo/bin/`, and PATH reminder (satisfies AC-2, AC-3, AC-4, AC-5)
   2. `../../project-readme/readme/impl.md` — documents the curl install command that users copy; AC-1 explicitly requires the command to come from the README
 - The installer script is generated and managed by cargo-dist; it is not hand-maintained in this repository
 - AC-6 (no OWNER placeholders) is a release-gate concern tracked in the README impl; it is not re-tested here

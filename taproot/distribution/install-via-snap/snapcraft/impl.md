@@ -20,11 +20,11 @@
 ## Tests
 Integration tests require snapd and Snapcraft:
 
-- **AC-1** (fresh install): publish snap to Snap Store edge channel; `snap install rpncalc --channel=edge`; verify `rpncalc` on PATH and `snap list` shows version
-- **AC-2** (auto-refresh): install from edge, publish new revision; wait for auto-refresh or `snap refresh rpncalc`; verify new version
-- **AC-3** (manual refresh): `snap refresh rpncalc`; verify latest revision installed
-- **AC-4** (not found): `snap install rpncalc` before publishing; verify "snap not found" error
-- **AC-5** (classic confinement): run rpncalc in terminal after install; verify stdin/stdout work without confinement errors
+- **AC-1** (fresh install): publish snap to Snap Store edge channel; `snap install rpnpad --channel=edge`; verify `rpnpad` on PATH and `snap list` shows version
+- **AC-2** (auto-refresh): install from edge, publish new revision; wait for auto-refresh or `snap refresh rpnpad`; verify new version
+- **AC-3** (manual refresh): `snap refresh rpnpad`; verify latest revision installed
+- **AC-4** (not found): `snap install rpnpad` before publishing; verify "snap not found" error
+- **AC-5** (classic confinement): run rpnpad in terminal after install; verify stdin/stdout work without confinement errors
 
 ## DoR Resolutions
 
@@ -34,6 +34,6 @@ Integration tests require snapd and Snapcraft:
 - **Last verified:** 2026-03-25
 
 ## Notes
-- Classic confinement approval from Canonical may take days to weeks. During the review period, use `snap install --devmode rpncalc` for testing.
-- A Snapcraft account (snapcraft.io) is required to publish. Register the snap name `rpncalc` via `snapcraft register rpncalc` before first publish.
-- The snap name `rpncalc` may already be taken on the Snap Store — check before submitting.
+- Classic confinement approval from Canonical may take days to weeks. During the review period, use `snap install --devmode rpnpad` for testing.
+- A Snapcraft account (snapcraft.io) is required to publish. Register the snap name `rpnpad` via `snapcraft register rpnpad` before first publish.
+- The snap name `rpnpad` may already be taken on the Snap Store — check before submitting.

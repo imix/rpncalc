@@ -34,4 +34,4 @@ All ACs are verified by content inspection:
 - **State:** complete
 - **Created:** 2026-03-24
 - **Last verified:** 2026-03-24
-- **2026-03-24:** ASCII art corrected — outer `╭─ rpncalc ─╮` border, Stack+Hints panes equal-height side by side, input/separator/mode bar inside outer border (no separate Input box)
+- **2026-03-24:** ASCII art corrected — outer `╭─ rpnpad ─╮` border, Stack+Hints panes equal-height side by side, input/separator/mode bar inside outer border (no separate Input box)

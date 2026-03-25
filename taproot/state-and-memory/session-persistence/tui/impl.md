@@ -8,7 +8,7 @@
   file first, then `fs::rename()` — prevents corrupt state on interrupted write
 - SIGTERM handled via `signal-hook` in `main.rs` — sets an atomic flag;
   the event loop checks the flag each tick and triggers a save before exit
-- Session path: `~/.rpncalc/session.json` (via `dirs::home_dir()`)
+- Session path: `~/.rpnpad/session.json` (via `dirs::home_dir()`)
 - Only `CalcState` (stack + registers) is persisted — undo history is
   intentionally not persisted
 - `RESET` command (typed in alpha mode) saves an empty `CalcState` to
