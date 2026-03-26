@@ -71,6 +71,24 @@ CLI power user (engineer, scientist, or anyone computing with derived physical q
   3. Dimension exponents cancel to `{}` (all zeros).
   4. Stack displays the plain number `2` with no unit label.
 
+### Add two same-compound-unit values
+- **Trigger:** User adds two values with identical dimension vectors.
+- **Steps:**
+  1. Stack has `1 m/s` at position 2 and `2 m/s` at position 1.
+  2. User presses `+`.
+  3. System verifies dimension vectors match: `{m:1, s:-1}` = `{m:1, s:-1}`.
+  4. System adds the amounts; result carries the shared compound unit unchanged.
+  5. Stack displays `3 m/s`.
+
+### Reciprocal of a compound-unit value
+- **Trigger:** User invokes `1/x` on a compound-unit value.
+- **Steps:**
+  1. Stack has `9.8 m/s2` at position 1.
+  2. User invokes `1/x`.
+  3. System computes `1 / 9.8` and negates all dimension exponents: `{m:1, s:-2}` → `{m:-1, s:2}`.
+  4. Stack displays `~0.102 s2/m`.
+- **Note:** If `1/x` is applied to a unitless value, existing behaviour is unchanged (no unit produced).
+
 ### Convert compound unit to compatible compound unit
 - **Trigger:** User converts a compound-unit value to a compatible compound unit (e.g. `m/s` → `km/h`).
 - **Steps:**
@@ -195,13 +213,23 @@ sequenceDiagram
 - When the user converts to `km/h`
 - Then position 1 is replaced with `100 km/h` (within rounding tolerance)
 
+**AC-15: Add two same-compound-unit values**
+- Given the stack has `1 m/s` at position 2 and `2 m/s` at position 1
+- When the user presses `+`
+- Then the stack displays `3 m/s`
+
+**AC-16: Reciprocal of a compound-unit value**
+- Given the stack has `4 m/s2` at position 1
+- When the user invokes `1/x`
+- Then the stack displays `0.25 s2/m`
+
 ## Status
 - **State:** proposed
 - **Created:** 2026-03-26
 - **Last reviewed:** 2026-03-26
 
 ## Notes
-- **Input grammar** (no special characters): `<unit-expr>` = `<atom>+ [ "/" <atom>+ ]`; `<atom>` = `<abbrev> [ ["-"] <digits> ]`. Examples: `m/s`, `m/s2`, `kg*m/s2`, `m2`. Asterisk (`*`) separates multiple numerator atoms; space-separated numerator atoms may be supported as a convenience.
+- **Input grammar**: `<unit-expr>` = `<numerator> [ "/" <denominator> ]`; `<numerator>` / `<denominator>` = `<atom> (("*" | " ") <atom>)*`; `<atom>` = `<abbrev> [ ["-"] <digits> ]`. Both `*` (Shift+8) and a single space are accepted as numerator separators in input. Characters requiring more than one modifier key or a compose sequence (e.g. `·` middle dot, `²` superscript) are not accepted — use ASCII digits for exponents (e.g. `m2` not `m²`). Examples: `m/s`, `m/s2`, `kg*m/s2`, `kg m/s2`, `m2`.
 - **Display format**: numerator atoms joined with `*`, denominator (negative-exponent) atoms after `/` with their absolute exponent. E.g. `{kg:1, m:1, s:-2}` displays as `kg*m/s2`. Dimensionless result (all exponents zero) displays as a plain number.
 - **Unit display for derived results**: when the result dimension matches a known named unit (e.g. `{m:1, s:-1}` for km/h), prefer the most natural unit given the operands' units. If the match is ambiguous or unknown, construct the display from the dimension vector.
 - **Temperature in compound units**: temperature as a compound operand uses Kelvin semantics (ratio scale). Offset units (°F, °C) are only valid as standalone simple-unit values, not as atoms in a compound unit expression.

@@ -11,7 +11,7 @@ rpnpad application (internal refactor — no new user-visible behaviour; the obs
 
 1. Developer builds rpnpad after the refactor.
 2. System loads the unit registry, where every unit now carries a `DimensionVector` — seven signed integer exponents, one per SI base dimension: mass (kg), length (m), time (s), electric current (A), temperature (K), amount (mol), luminous intensity (cd).
-3. System constructs a `TaggedValue` for user-entered input (e.g. `1.9 oz`): the value carries both the numeric amount and the unit's `DimensionVector`.
+3. System constructs a `TaggedValue` for user-entered input (e.g. `1.9 oz`): the value stores the numeric amount (`1.9`), the unit abbreviation string (`"oz"`, retained for display), and the unit's `DimensionVector` (`{kg: 1}`, used for arithmetic type-checking).
 4. System performs all existing unit operations (tag, convert, arithmetic, negate, display) using the dimension vector internally — results are identical to pre-refactor.
 5. Developer runs the test suite; all existing tests pass.
 
@@ -35,13 +35,14 @@ rpnpad application (internal refactor — no new user-visible behaviour; the obs
 
 ## Postconditions
 - Every unit in the registry has a `DimensionVector` with correct SI exponents.
-- `TaggedValue` stores a `DimensionVector` in addition to (or replacing) the unit abbreviation string.
+- `TaggedValue` stores both the unit abbreviation string (for display, e.g. `"oz"`) and a `DimensionVector` (for arithmetic type-checking, e.g. `{kg: 1}`). The abbreviation is never dropped.
 - All existing unit-tagged operations produce identical user-visible results.
 - Serde round-trip for `TaggedValue` preserves the dimension vector.
 - Old session files with string-format units are discarded gracefully with a status message.
 
 ## Error Conditions
 - **Unrecognised session format:** system cannot parse `session.json` unit field → discard session, start fresh, show `session reset — unit format updated`. No crash.
+- **Incompatible units in arithmetic:** uses the existing `CalcError::IncompatibleUnits(String)` variant introduced by `unit-aware-values`. No new error variant is added by this refactor.
 
 ## Flow
 
