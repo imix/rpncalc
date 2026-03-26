@@ -4,7 +4,7 @@
 ../usecase.md
 
 ## Design Decisions
-- **`CalcValue::Tagged(TaggedValue)` new variant**: adds `TaggedValue { amount: f64, unit: String }` to the existing `CalcValue` enum. Using `f64` for amount is consistent with the engine — all arithmetic already routes through `to_f64()`. The unit is stored as its abbreviation string; the static registry is looked up at use time. Serde serializes naturally as `{"amount": 1.9, "unit": "oz"}`.
+- **`CalcValue::Tagged(TaggedValue)` new variant**: adds `TaggedValue { amount: FBig, unit: String }` to the existing `CalcValue` enum. `amount` uses dashu `FBig` (not `f64`) to prevent precision noise in round-trip conversions (e.g. `ft → cm → ft` yielding `3.200000000000001`). `f64` is only used transiently during scale arithmetic and immediately lifted back to `FBig`. The unit is stored as its canonical display string; the static registry is looked up at use time. Serde uses dashu's built-in serde feature.
 - **Static unit registry in `engine/units.rs`**: a `&[(abbrev, category, Option<f64>)]` slice with linear search. With ~20 entries, lookup is negligible. Temperature units have `None` for the scale factor and are handled by a separate affine conversion path.
 - **Temperature stored in user's unit (not Kelvin)**: `98.6 °F` stores `98.6` with unit `"°F"`. Conversion uses direct affine formula. Normalising to Kelvin would work too, but this avoids a confusing intermediate and is simpler for affine arithmetic.
 - **ASCII aliases for temperature** (`F`/`C` accepted as aliases for `°F`/`°C`): terminal keyboards cannot reliably input `°`. The canonical display is always `°F`/`°C`; aliases only apply to parser input and the `in` command.
@@ -44,6 +44,7 @@
 - condition: document-current | note: README updated with Physical Units section (unit input syntax, supported units table, conversion with U key and `in <unit>` Alpha command, arithmetic behaviour for same-category values, scalar multiplication, dimensionless division, temperature conversion). U key added to Normal Mode key reference table. Unit Mode key table added. `in <unit>` added to Alpha mode commands table. All user-visible behaviour is accurately reflected. | resolved: 2026-03-26
 - condition: document-current (rework) | note: Hint panel changes are internal UI only — no new user-visible behaviour. README already accurately describes U key and unit conversion. No README change required. | resolved: 2026-03-26
 - condition: document-current (rework-2) | note: ConvertInput filtering and Insert mode unit hint are internal UI changes. README unit syntax documentation already covers "1.9 oz", "6 ft", "98.6F" as valid input forms. No README change required. | resolved: 2026-03-26
+- condition: document-current (rework-3) | note: `TaggedValue.amount` changed from `f64` to `FBig` — internal precision fix. No user-visible behaviour change; README description of unit arithmetic is already accurate. No README change required. | resolved: 2026-03-26
 
 ## Status
 - **State:** complete
