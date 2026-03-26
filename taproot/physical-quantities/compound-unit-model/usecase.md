@@ -100,8 +100,11 @@ sequenceDiagram
 - When the user pushes `1.9 oz` and performs any unit operation
 - Then the operation completes correctly with no errors
 
+## Implementations <!-- taproot-managed -->
+- [tui](./tui/impl.md)
+
 ## Status
-- **State:** proposed
+- **State:** specified
 - **Created:** 2026-03-26
 - **Last reviewed:** 2026-03-26
 
