@@ -31,6 +31,7 @@
 - a56d5b4 taproot(physical-quantities/unit-aware-values): implement unit-tagged values
 - de8609a taproot(physical-quantities/unit-aware-values): fix hints — grouped unit ref and UNITS section
 - f87e884 taproot(physical-quantities/unit-aware-values): contextual hints — filter by category, show unit syntax
+- `d63b4cd207f2abf20ac90071dc11bfde503dd4eb` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/engine/units.rs` — unit conversion math: weight (oz↔g, lb↔kg), length (ft↔m, in↔cm), temperature (°F↔°C); incompatible category error; unknown unit lookup
