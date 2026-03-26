@@ -55,10 +55,13 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Char(c) => dispatch_chord_key(category, c),
             _ => Action::ChordInvalid,
         },
-        AppMode::Insert(_) => match event.code {
+        AppMode::Insert(buf) => match event.code {
             KeyCode::Enter => Action::InsertSubmit,
             KeyCode::Esc => Action::InsertCancel,
             KeyCode::Backspace => Action::InsertBackspace,
+            // Space with a non-empty buffer transitions to unit expression context
+            KeyCode::Char(' ') if !buf.is_empty() => Action::InsertChar(' '),
+            // Operation shortcuts only fire in pure numeric context (no space typed yet)
             KeyCode::Char('+') => Action::InsertSubmitThen(Op::Add),
             KeyCode::Char('-') => Action::InsertSubmitThen(Op::Sub),
             KeyCode::Char('*') => Action::InsertSubmitThen(Op::Mul),
@@ -74,6 +77,14 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Char('p') => Action::InsertSubmitThen(Op::Dup),
             KeyCode::Char('r') => Action::InsertSubmitThen(Op::Rotate),
             KeyCode::Char('R') => Action::InsertSubmitThen(Op::Rotate),
+            KeyCode::Char(c) => Action::InsertChar(c),
+            _ => Action::Noop,
+        },
+        // Unit expression context: all characters are literal, no shortcuts
+        AppMode::InsertUnit(_) => match event.code {
+            KeyCode::Enter => Action::InsertSubmit,
+            KeyCode::Esc => Action::InsertCancel,
+            KeyCode::Backspace => Action::InsertBackspace,
             KeyCode::Char(c) => Action::InsertChar(c),
             _ => Action::Noop,
         },
@@ -971,6 +982,65 @@ mod tests {
         assert_eq!(
             handle_key(&AppMode::Insert("9".into()), key(KeyCode::Char('w'))),
             Action::InsertSubmitThen(Op::Sqrt)
+        );
+    }
+
+    // AC-7/AC-8: Space in Insert mode with non-empty buffer → InsertChar(' ') (transitions to InsertUnit in app)
+    #[test]
+    fn test_insert_space_with_nonempty_buffer_produces_insert_char() {
+        assert_eq!(
+            handle_key(&AppMode::Insert("1".into()), key(KeyCode::Char(' '))),
+            Action::InsertChar(' ')
+        );
+    }
+
+    // Space in Insert with empty buffer → also InsertChar (no transition, empty buffer)
+    #[test]
+    fn test_insert_space_with_empty_buffer_produces_insert_char() {
+        assert_eq!(
+            handle_key(&AppMode::Insert("".into()), key(KeyCode::Char(' '))),
+            Action::InsertChar(' ')
+        );
+    }
+
+    // AC-8: InsertUnit mode — '/' is literal InsertChar, not InsertSubmitThen(Div)
+    #[test]
+    fn test_insert_unit_slash_is_insert_char() {
+        assert_eq!(
+            handle_key(&AppMode::InsertUnit("1 m".into()), key(KeyCode::Char('/'))),
+            Action::InsertChar('/')
+        );
+    }
+
+    // InsertUnit mode — all shortcut chars are literal InsertChar
+    #[test]
+    fn test_insert_unit_all_chars_literal() {
+        let shortcut_chars = ['+', '-', '*', '/', '^', '%', '!', 's', 'd', 'p', 'r', 'n'];
+        for c in &shortcut_chars {
+            assert_eq!(
+                handle_key(&AppMode::InsertUnit("1 m".into()), key(KeyCode::Char(*c))),
+                Action::InsertChar(*c),
+                "InsertUnit key '{}' should be literal InsertChar, not a shortcut",
+                c
+            );
+        }
+    }
+
+    // InsertUnit: Enter → InsertSubmit
+    #[test]
+    fn test_insert_unit_enter_submits() {
+        assert_eq!(
+            handle_key(&AppMode::InsertUnit("1 m/s".into()), key(KeyCode::Enter)),
+            Action::InsertSubmit
+        );
+    }
+
+    // InsertUnit: Esc → InsertCancel
+    #[test]
+    fn test_insert_unit_esc_cancels() {
+        assert_eq!(
+            handle_key(&AppMode::InsertUnit("1 m".into()), key(KeyCode::Esc)),
+            Action::InsertCancel
         );
     }
 

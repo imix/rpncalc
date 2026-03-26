@@ -90,7 +90,17 @@ impl App {
             }
             Action::InsertChar(c) => {
                 let pushed = match &mut self.mode {
+                    AppMode::Insert(buf) if c == ' ' && !buf.is_empty() => {
+                        // Space after a non-empty numeric buffer enters unit expression context
+                        let new_buf = buf.clone() + " ";
+                        self.mode = AppMode::InsertUnit(new_buf);
+                        true
+                    }
                     AppMode::Insert(buf) => {
+                        buf.push(c);
+                        true
+                    }
+                    AppMode::InsertUnit(buf) => {
                         buf.push(c);
                         true
                     }
@@ -103,19 +113,21 @@ impl App {
             }
             Action::InsertSubmit => {
                 let mode = std::mem::replace(&mut self.mode, AppMode::Normal);
-                if let AppMode::Insert(buf) = mode {
-                    self.error_message = None;
-                    if buf.is_empty() {
-                        return;
-                    }
-                    if let Ok(val) = parse_value(&buf) {
-                        let pre_op = self.state.clone();
-                        self.state.push(val);
-                        self.undo_history.snapshot(&pre_op);
-                    } else {
-                        self.error_message =
-                            Some(format!("Cannot parse: {} (expected a number)", buf));
-                    }
+                let buf = match mode {
+                    AppMode::Insert(buf) | AppMode::InsertUnit(buf) => buf,
+                    _ => return,
+                };
+                self.error_message = None;
+                if buf.is_empty() {
+                    return;
+                }
+                if let Ok(val) = parse_value(&buf) {
+                    let pre_op = self.state.clone();
+                    self.state.push(val);
+                    self.undo_history.snapshot(&pre_op);
+                } else {
+                    self.error_message =
+                        Some(format!("Cannot parse: {} (expected a number or unit value)", buf));
                 }
             }
             Action::InsertSubmitThen(op) => {
@@ -150,7 +162,7 @@ impl App {
             }
             Action::InsertBackspace => {
                 let should_reset = match &mut self.mode {
-                    AppMode::Insert(buf) => {
+                    AppMode::Insert(buf) | AppMode::InsertUnit(buf) => {
                         buf.pop();
                         buf.is_empty()
                     }
@@ -789,6 +801,55 @@ mod tests {
         assert_eq!(app.mode, AppMode::Normal);
         assert_eq!(app.state.depth(), 1);
         assert!(app.error_message.is_none());
+    }
+
+    // AC-7: Space in Insert mode with non-empty buffer transitions to InsertUnit
+    #[test]
+    fn test_insert_space_transitions_to_insert_unit() {
+        let mut app = App::new();
+        app.apply(Action::InsertChar('1'));
+        app.apply(Action::InsertChar(' '));
+        assert_eq!(app.mode, AppMode::InsertUnit("1 ".into()));
+    }
+
+    // AC-7: InsertUnit — typing m/s and Enter pushes unit-tagged value
+    #[test]
+    fn test_insert_unit_push_compound_value() {
+        let mut app = App::new();
+        app.mode = AppMode::InsertUnit("1 m/s".into());
+        app.apply(Action::InsertSubmit);
+        assert_eq!(app.mode, AppMode::Normal);
+        assert_eq!(app.state.depth(), 1);
+        assert!(app.error_message.is_none());
+    }
+
+    // AC-8: / in InsertUnit mode appends literally, does not divide
+    #[test]
+    fn test_insert_unit_slash_is_literal() {
+        let mut app = App::new();
+        app.mode = AppMode::InsertUnit("1 m".into());
+        app.apply(Action::InsertChar('/'));
+        assert_eq!(app.mode, AppMode::InsertUnit("1 m/".into()));
+        assert_eq!(app.state.depth(), 0); // no division occurred
+    }
+
+    // Space in empty Insert buffer does NOT trigger InsertUnit
+    #[test]
+    fn test_insert_space_empty_buffer_stays_insert() {
+        let mut app = App::new();
+        app.mode = AppMode::Insert(String::new());
+        app.apply(Action::InsertChar(' '));
+        // Should stay in Insert (space appended) not InsertUnit
+        assert!(matches!(app.mode, AppMode::Insert(_)));
+    }
+
+    // InsertUnit Esc returns to Normal
+    #[test]
+    fn test_insert_unit_cancel_returns_to_normal() {
+        let mut app = App::new();
+        app.mode = AppMode::InsertUnit("1 m".into());
+        app.apply(Action::InsertCancel);
+        assert_eq!(app.mode, AppMode::Normal);
     }
 
     // InsertSubmit snapshots undo history on successful push

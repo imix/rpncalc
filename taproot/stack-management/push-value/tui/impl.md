@@ -66,13 +66,23 @@
 
 ## DoD Resolutions
 - **check-if-affected (src/tui/widgets/hints_pane.rs)**: updated — Insert mode
-  shows op shortcut hints; new Alpha mode shows "all chars literal" hint panel
+- condition: document-current | note: README.md updated: Insert Mode table adds Space key row explaining unit expression context; compound unit section clarifies that space is required for units containing '/' and explains the InsertUnit mechanism | resolved: 2026-03-26T11:25:15.808Z
+
+  shows op shortcut hints; new Alpha mode shows "all chars literal" hint panel;
+  InsertUnit mode shows "unit expression — all keys literal" hint with no shortcuts
 - **check-if-affected (src/tui/widgets/mode_bar.rs)**: updated — Alpha shows
-  [ALPHA], Insert shows [INSERT]
+  [ALPHA], Insert shows [INSERT]; InsertUnit shows [INSERT]
 - **check-if-affected (src/input/handler.rs)**: updated — new AppMode::Alpha arm
-  with all-literal char handling; Insert arm has InsertSubmitThen shortcuts
+  with all-literal char handling; Insert arm has InsertSubmitThen shortcuts; new
+  InsertUnit arm with all-literal char handling; Insert arm guards space
 - **check-if-affected (src/tui/app.rs)**: updated — InsertSubmit parses numbers,
-  AlphaSubmit dispatches commands only; two separate action sets
+  AlphaSubmit dispatches commands only; InsertChar(' ') transitions to InsertUnit;
+  InsertSubmit/InsertBackspace handle both Insert and InsertUnit
+- **check-if-affected (src/tui/widgets/input_line.rs)**: updated — InsertUnit
+  buffer renders with cursor alongside Insert and Alpha
+- **document-current (README.md)**: updated — Insert Mode table adds Space key
+  row explaining unit expression context; compound unit section clarifies the
+  space is required for units containing '/' and explains why
 
 ## DoD Resolutions (AC-6)
 - **check-if-affected (src/tui/widgets/stack_pane.rs)**: updated — empty rows now show
@@ -80,6 +90,6 @@
   unified to use `height` so label column is consistent across empty and value rows
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-21
 - **Last verified:** 2026-03-26

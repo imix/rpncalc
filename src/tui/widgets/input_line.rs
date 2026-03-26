@@ -4,7 +4,7 @@ use crate::input::mode::AppMode;
 
 pub fn render(f: &mut Frame, area: Rect, mode: &AppMode) {
     let text = match mode {
-        AppMode::Insert(buf) | AppMode::Alpha(buf) | AppMode::AlphaStore(buf) => {
+        AppMode::Insert(buf) | AppMode::InsertUnit(buf) | AppMode::Alpha(buf) | AppMode::AlphaStore(buf) => {
             format!("> {}_", buf)
         }
         _ => "> ".to_string(),

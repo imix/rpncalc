@@ -22,7 +22,7 @@ pub fn render(
 ) {
     let mode_str = match mode {
         AppMode::Normal | AppMode::Chord(_) => "[NORMAL]",
-        AppMode::Insert(_) | AppMode::AlphaStore(_) => "[INSERT]",
+        AppMode::Insert(_) | AppMode::InsertUnit(_) | AppMode::AlphaStore(_) => "[INSERT]",
         AppMode::Alpha(_) => "[ALPHA]",
         AppMode::Browse(_) => "[BROWSE]",
         AppMode::PrecisionInput(_) => "[PREC]",

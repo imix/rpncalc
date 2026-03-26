@@ -223,7 +223,7 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
             Line::raw("Esc    cancel"),
             Line::raw("Bksp   delete"),
             Line::raw(""),
-            Line::styled("append unit: 1.9 oz  6 ft  98.6 F", dim),
+            Line::styled("unit: 1.9 oz  6 ft  98.6 F  (or 1 m/s)", dim),
             Line::raw(""),
             Line::raw("+  add    -  sub"),
             Line::raw("*  mul    /  div"),
@@ -234,6 +234,19 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
             Line::raw("p  dup    R  rot"),
             Line::raw(""),
             Line::raw("Q  quit"),
+        ];
+        f.render_widget(Paragraph::new(lines), area);
+        return;
+    }
+
+    if matches!(mode, AppMode::InsertUnit(_)) {
+        let lines = vec![
+            Line::raw("Enter  push"),
+            Line::raw("Esc    cancel"),
+            Line::raw("Bksp   delete"),
+            Line::raw(""),
+            Line::styled("unit expression — all keys literal", dim),
+            Line::styled("examples: m/s  kg*m/s2  km/h", dim),
         ];
         f.render_widget(Paragraph::new(lines), area);
         return;
@@ -701,6 +714,18 @@ mod tests {
         let content = full_content(&buf);
         assert!(content.contains("push"));
         assert!(content.contains("cancel"));
+    }
+
+    // AC-7/AC-8: InsertUnit mode shows unit expression hint, no op shortcuts
+    #[test]
+    fn test_insert_unit_mode_hints() {
+        let buf = render_hints(AppMode::InsertUnit("1 m".into()), CalcState::new(), 40, 10);
+        let content = full_content(&buf);
+        assert!(content.contains("push"), "InsertUnit should show push hint");
+        assert!(content.contains("cancel"), "InsertUnit should show cancel hint");
+        assert!(content.contains("literal"), "InsertUnit should mention literal keys");
+        assert!(!content.contains("add"), "InsertUnit should NOT show op shortcuts");
+        assert!(!content.contains("div"), "InsertUnit should NOT show div shortcut");
     }
 
     // Alpha mode shows submit/cancel/delete (no op shortcuts)

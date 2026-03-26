@@ -150,7 +150,8 @@ Entered by typing a digit or starting a number. All printable characters build t
 | `Enter` | Push value onto stack |
 | `Esc` | Cancel, discard input |
 | `Backspace` | Delete last character |
-| `+` `-` `*` `/` `^` `%` `!` | Push value then apply operation |
+| `Space` | Enter unit expression context — all subsequent keys are literal (no shortcuts). Use this to type compound units like `1 m/s`. |
+| `+` `-` `*` `/` `^` `%` `!` | Push value then apply operation (only fires before a space is typed) |
 | `q` | Push value then square it (x²) |
 | `w` | Push value then take square root (√x) |
 | `s` `d` `p` `r` `n` | Push value then apply stack op |
@@ -261,7 +262,7 @@ Type a number followed by a unit abbreviation (space optional), then press `Ente
 6 ft        → pushes 6 ft
 ```
 
-Compound units (built from two or more base units) are entered the same way:
+Compound units (built from two or more base units) require a **space** between the number and the unit expression, because `/` is otherwise treated as a division shortcut in Insert mode:
 
 ```
 9.8 m/s2    → pushes 9.8 m/s² (acceleration)
@@ -269,6 +270,8 @@ Compound units (built from two or more base units) are entered the same way:
 80 kg*m/s2  → pushes 80 kg·m/s² (force)
 25 m2       → pushes 25 m² (area)
 ```
+
+The space triggers unit expression context — all subsequent keys (including `/`, `*`, `+`, etc.) are treated as literal characters until `Enter`. Simple units without `/` remain space-optional (`1.9oz` and `1.9 oz` both work).
 
 **Input grammar:** `<numerator>/<denominator>`, where each part contains unit atoms joined by `*` or space. Exponents are plain ASCII digits (`m2`, `s2`, not `m²`). Both `*` and space are accepted as numerator separators.
 

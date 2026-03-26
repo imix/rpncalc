@@ -27,4 +27,7 @@ pub enum AppMode {
     PrecisionInput(String),
     /// Unit-conversion target entry. Buffer accumulates the target unit abbreviation.
     ConvertInput(String),
+    /// Insert mode after a space has been typed — all keys are literal characters,
+    /// no operation shortcuts fire. Used for compound unit entry (e.g. `1 m/s`).
+    InsertUnit(String),
 }
