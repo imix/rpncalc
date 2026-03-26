@@ -62,11 +62,8 @@ fn try_parse_tagged(input: &str) -> Result<Option<CalcValue>, CalcError> {
                         return Ok(Some(CalcValue::Tagged(tv)));
                     }
                 }
-                Err(CalcError::InvalidInput(e)) if e.starts_with("unknown unit:") => {
-                    // Propagate unknown-unit errors rather than silently falling through
-                    return Err(CalcError::InvalidInput(e));
-                }
-                _ => {} // malformed expression — fall through to number-only parse
+                Err(e) => return Err(e), // propagate: unknown unit, malformed expression, etc.
+                _ => {} // Ok(atoms) is empty — fall through
             }
         }
     }
@@ -482,6 +479,26 @@ mod tests {
         assert!(
             matches!(&result, Err(CalcError::InvalidInput(e)) if e.contains("unknown unit: fathom")),
             "got: {:?}", result
+        );
+    }
+
+    // AC-18: malformed compound unit expression raises "invalid unit expression" error
+    #[test]
+    fn test_parse_malformed_compound_unit_errors() {
+        let result = parse_value("9.8 m//s");
+        assert!(
+            matches!(&result, Err(CalcError::InvalidInput(e)) if e.contains("invalid unit expression")),
+            "double-slash should raise invalid unit expression error, got: {:?}", result
+        );
+    }
+
+    // AC-18: trailing slash also malformed
+    #[test]
+    fn test_parse_trailing_slash_errors() {
+        let result = parse_value("5 m/");
+        assert!(
+            matches!(&result, Err(CalcError::InvalidInput(e)) if e.contains("invalid unit expression")),
+            "trailing slash should raise invalid unit expression error, got: {:?}", result
         );
     }
 

@@ -44,3 +44,5 @@
 
 ## DoD Resolutions
 - condition: document-current | note: README.md updated: added compound unit input grammar, compound arithmetic examples (multiplication, division, sqrt, reciprocal, same-compound-unit addition), compound unit conversion example (m/s → km/h). No new key bindings or modes — compound units reuse existing arithmetic operators. | resolved: 2026-03-26T09:09:36.672Z
+- condition: document-current | note: Bug fix only: malformed compound unit expression (e.g. 9.8 m//s) now raises 'invalid unit expression: m//s' instead of a generic number-parse error. No new user-visible behaviour, key binding, or grammar rule introduced — the existing README compound unit input section (which documents space-before-slash requirement and example expressions) already accurately describes the valid input forms. Error message specificity improvements are internal quality improvements, not documentation-worthy behaviour changes. | resolved: 2026-03-26T13:07:15.141Z
+
