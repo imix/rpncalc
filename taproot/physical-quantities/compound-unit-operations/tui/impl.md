@@ -29,7 +29,8 @@
 
 ## Tests
 - `src/engine/units.rs` — `test_parse_unit_expr_atoms_*` (AC-1/AC-2 atom parsing), `test_combine_atoms_mul_*` (AC-4/AC-5/AC-6 unit combination), `test_compound_to_si_scale` (conversion factor), `test_convert_tagged_compound` (AC-14 compound convert)
-- `src/input/parser.rs` — `test_parse_compound_unit_speed` (AC-1), `test_parse_compound_unit_acceleration` (AC-2), `test_parse_unknown_unit_error` (AC-12), `test_parse_malformed_unit_error`
+- `src/input/parser.rs` — `test_parse_compound_speed` (AC-1), `test_parse_compound_acceleration` (AC-2), `test_parse_unknown_unit_error` (AC-12); AC-18 (malformed expression) has no dedicated test — malformed input currently falls through to number-only parse rather than raising an explicit error
+- `src/input/handler.rs` — AC-17: `test_insert_unit_slash_is_insert_char`, `test_insert_unit_all_chars_literal`, `test_insert_unit_enter_submits` (InsertUnit mode captures `/` literally)
 - `src/engine/ops.rs` — `test_compound_div_speed` (AC-3), `test_compound_mul_cancellation` (AC-4), `test_compound_mul_area` (AC-5), `test_compound_mul_force` (AC-6), `test_compound_div_dimensionless` (AC-7), `test_compound_mul_scalar` (AC-8), `test_compound_sqrt_area` (AC-9), `test_compound_sqrt_odd_error` (AC-10), `test_compound_add_incompatible_error` (AC-11), `test_compound_session_restore` (AC-13), `test_compound_add_same_unit` (AC-15), `test_compound_reciprocal` (AC-16)
 
 ## DoR Resolutions

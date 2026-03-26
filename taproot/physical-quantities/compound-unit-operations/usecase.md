@@ -80,6 +80,16 @@ CLI power user (engineer, scientist, or anyone computing with derived physical q
   4. System adds the amounts; result carries the shared compound unit unchanged.
   5. Stack displays `3 m/s`.
 
+### Compound unit entry via InsertUnit mode
+- **Trigger:** User types a number followed by a space in Insert mode.
+- **Steps:**
+  1. The mode transitions to InsertUnit, where all keys including `/` are
+     captured literally (not interpreted as the division operator).
+  2. User types the unit expression (e.g. `m/s`, `kg*m/s2`).
+  3. System parses and pushes the compound-unit value on Enter.
+- **Note:** Simple units without `/` remain space-optional (`1.9oz` still works).
+  InsertUnit mode is only triggered when a space follows a numeric token.
+
 ### Reciprocal of a compound-unit value
 - **Trigger:** User invokes `1/x` on a compound-unit value.
 - **Steps:**
@@ -222,6 +232,17 @@ sequenceDiagram
 - Given the stack has `4 m/s2` at position 1
 - When the user invokes `1/x`
 - Then the stack displays `0.25 s2/m`
+
+**AC-17: Compound unit entry — InsertUnit mode captures `/` literally**
+- Given rpnpad is in Insert mode and the user has typed a number followed by a space
+- When the user types a unit expression containing `/` (e.g. `m/s`)
+- Then the `/` is captured as part of the unit expression (not as the division operator)
+- And pressing Enter pushes the compound-unit value (e.g. `1 m/s`) onto the stack
+
+**AC-18: Malformed compound unit expression — error, input not pushed**
+- Given rpnpad is running
+- When the user enters `9.8 m//s` and presses Enter
+- Then an error `invalid unit expression` is shown and the stack is unchanged
 
 ## Implementations <!-- taproot-managed -->
 - [tui](./tui/impl.md)
