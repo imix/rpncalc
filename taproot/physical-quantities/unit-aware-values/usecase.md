@@ -245,6 +245,9 @@ sequenceDiagram
 - When rpnpad is reopened
 - Then the stack still displays `1.9 oz` at position 1
 
+## Implementations <!-- taproot-managed -->
+- [tui](./tui/impl.md)
+
 ## Status
 - **State:** specified
 - **Created:** 2026-03-25
