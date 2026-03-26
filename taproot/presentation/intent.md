@@ -14,12 +14,12 @@ without getting in the way of computation.
   so future widgets follow the same conventions without extra thought
 
 ## Success Criteria
-- [ ] All visible panels have matching border styles and titled blocks
-- [ ] A single color accent (cyan) is applied consistently to structural
+- [x] All visible panels have matching border styles and titled blocks
+- [x] A single color accent (cyan) is applied consistently to structural
       chrome (panel titles, outer border title) and nowhere else
-- [ ] The mode/status bar is visually separated from the main content area
-- [ ] The outer border carries the app name as a title
-- [ ] A user comparing a screenshot to btop would say "same genre"
+- [x] The mode/status bar is visually separated from the main content area
+- [x] The outer border carries the app name as a title
+- [x] A user comparing a screenshot to btop would say "same genre"
 
 ## Constraints
 - Must stay within ratatui's widget model — no raw terminal escape codes

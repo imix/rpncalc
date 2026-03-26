@@ -11,7 +11,7 @@ Enable users to tag stack values with physical units and convert between compati
 - [x] A tagged value converts to a compatible unit on demand (e.g. `1.9 oz` → `53.86 g`)
 - [x] Arithmetic between same-unit values preserves the unit (e.g. `1.9 oz + 2 oz` → `3.9 oz`)
 - [x] Supported categories on first delivery: weight, length, temperature (imperial ↔ metric)
-- [ ] The unit model supports compound units (e.g. m/s, kg·m/s²) internally from the start, so derived units can be added without refactoring
+- [x] The unit model supports compound units (e.g. m/s, kg·m/s²) internally from the start, so derived units can be added without refactoring
 
 ## Constraints
 - Compound units (speed, pressure, etc.) are not user-facing in the first delivery — the architecture must accommodate them, but they ship as a later behaviour

@@ -9,7 +9,7 @@ User (CLI power user)
 
 ## Main Flow
 1. User opens `~/.rpnpad/config.toml` in any text editor
-2. User sets one or more values: `angle_mode`, `base`, `precision`,
+2. User sets one or more values: `angle_mode`, `base`, `notation`, `precision`,
    `hex_style`, `persist_session`, `max_undo_history`
 3. User saves the file and launches rpnpad
 4. rpnpad reads the config on startup and applies all valid values
@@ -41,7 +41,7 @@ stateDiagram-v2
 ```
 
 ## Acceptance Criteria
-**AC-1:** Given a valid `config.toml` at `~/.rpnpad/config.toml`, when rpnpad launches, then the configured defaults are applied before the first frame renders and the ModeBar reflects the configured angle mode and base.
+**AC-1:** Given a valid `config.toml` at `~/.rpnpad/config.toml`, when rpnpad launches, then the configured defaults are applied before the first frame renders and the ModeBar reflects the configured angle mode, base, and notation (`SCI` or `AUTO` indicator when non-default; blank when `fixed`).
 
 **AC-2:** Given `config.toml` contains an invalid field value, when rpnpad launches, then the invalid field falls back to its default and other valid fields are still applied.
 
@@ -58,4 +58,4 @@ stateDiagram-v2
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-21
-- **Last reviewed:** 2026-03-24
+- **Last reviewed:** 2026-03-26
