@@ -223,8 +223,11 @@ sequenceDiagram
 - When the user invokes `1/x`
 - Then the stack displays `0.25 s2/m`
 
+## Implementations <!-- taproot-managed -->
+- [tui](./tui/impl.md)
+
 ## Status
-- **State:** proposed
+- **State:** specified
 - **Created:** 2026-03-26
 - **Last reviewed:** 2026-03-26
 
