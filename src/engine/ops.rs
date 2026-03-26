@@ -224,8 +224,8 @@ fn tagged_binary_op(
                         )));
                     }
                     // Convert y to x's unit, operate, result has x's unit
-                    let converted_y = crate::engine::units::convert(ty.amount.to_f64().value(), unit_y, unit_x)?;
-                    let plain_y = CalcValue::from_f64(converted_y);
+                    let converted_y = crate::engine::units::convert(ty.amount.clone(), unit_y, unit_x)?;
+                    let plain_y = CalcValue::Float(converted_y);
                     let plain_x = CalcValue::Float(tx.amount.clone());
                     let plain_result = f(plain_y, plain_x)?;
                     let result = CalcValue::Tagged(TaggedValue {
@@ -246,8 +246,8 @@ fn tagged_binary_op(
                         ));
                     }
                     // Same-category division: convert y to x's unit, divide → dimensionless
-                    let converted_y = crate::engine::units::convert(ty.amount.to_f64().value(), unit_y, unit_x)?;
-                    let plain_y = CalcValue::from_f64(converted_y);
+                    let converted_y = crate::engine::units::convert(ty.amount.clone(), unit_y, unit_x)?;
+                    let plain_y = CalcValue::Float(converted_y);
                     let plain_x = CalcValue::Float(tx.amount.clone());
                     let result = f(plain_y, plain_x)?;
                     state.stack.truncate(n - 2);
