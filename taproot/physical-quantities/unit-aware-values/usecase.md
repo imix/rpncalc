@@ -252,6 +252,7 @@ sequenceDiagram
   - If top is a weight value: Weight group only — `g`  `kg`  `lb`  `oz`
   - If top is a length value: Length group only — `cm`  `ft`  `in`  `km`  `m`  `mi`  `mm`  `yd`
   - If top is a temperature value: Temperature group only — `°C`  `°F`  (aliases: `C`  `degC`  `degF`  `F`)
+  - If top is a compound unit value (e.g. `km/h`, `m/s2`): a `COMPOUND UNIT` section showing the source unit expression and a prompt to enter a compatible unit expression (same dimensions)
 
 **AC-25: Insert mode hints show unit input syntax**
 - Given rpnpad is in Insert mode (user is typing a number)
