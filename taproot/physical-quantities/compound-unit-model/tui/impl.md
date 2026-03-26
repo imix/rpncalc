@@ -20,6 +20,8 @@
 
 ## Commits
 - (auto-linked by taproot link-commits)
+- `271988ab87652b28224dfe42471fd1cfef4133e4` — (auto-linked by taproot link-commits)
+- `e3f09834f4fcb0ed1556cc79ed5bd565207942ae` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/engine/units.rs` — `test_registry_si_dimensions` (AC-2: oz/lb/g/kg→{kg:1}, all length units→{m:1}, °F/°C→{K:1}, s→{s:1}), `test_tagged_value_dim_serde_roundtrip` (AC-3: compound vector {m:1,s:-1} survives JSON round-trip), `test_dimension_vector_arithmetic` (add/sub/negate/halve helpers)
