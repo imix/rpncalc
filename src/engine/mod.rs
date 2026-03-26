@@ -7,6 +7,7 @@ pub mod ops;
 pub mod registers;
 pub mod stack;
 pub mod undo;
+pub mod units;
 pub mod value;
 
 #[allow(unused_imports)]

@@ -5,6 +5,7 @@ use crate::engine::{
     ops,
     stack::CalcState,
     undo::UndoHistory,
+    units::lookup_unit,
     value::CalcValue,
 };
 use crate::input::{action::Action, commands::parse_command, mode::AppMode, parser::parse_value};
@@ -341,6 +342,55 @@ impl App {
                 self.mode = AppMode::Normal;
                 self.error_message = None;
             }
+            Action::EnterConvertMode => {
+                if self.state.stack.is_empty() {
+                    self.error_message = Some("Stack is empty".into());
+                } else {
+                    self.mode = AppMode::ConvertInput(String::new());
+                    self.error_message = None;
+                }
+            }
+            Action::ConvertChar(c) => {
+                if let AppMode::ConvertInput(buf) = &mut self.mode {
+                    buf.push(c);
+                }
+                self.error_message = None;
+            }
+            Action::ConvertBackspace => {
+                let should_reset = match &mut self.mode {
+                    AppMode::ConvertInput(buf) => {
+                        buf.pop();
+                        buf.is_empty()
+                    }
+                    _ => false,
+                };
+                if should_reset {
+                    self.mode = AppMode::Normal;
+                }
+                self.error_message = None;
+            }
+            Action::ConvertSubmit => {
+                let mode = std::mem::replace(&mut self.mode, AppMode::Normal);
+                if let AppMode::ConvertInput(buf) = mode {
+                    if buf.is_empty() {
+                        return;
+                    }
+                    let pre_op = self.state.clone();
+                    match self.dispatch(Action::ConvertUnit(buf)) {
+                        Ok(()) => {
+                            self.undo_history.snapshot(&pre_op);
+                            self.error_message = None;
+                        }
+                        Err(e) => {
+                            self.error_message = Some(e.to_string());
+                        }
+                    }
+                }
+            }
+            Action::ConvertCancel => {
+                self.mode = AppMode::Normal;
+                self.error_message = None;
+            }
             Action::Yank => match self.state.stack.last() {
                 None => {
                     self.error_message = Some("Stack is empty".into());
@@ -432,6 +482,29 @@ impl App {
                 let _ = session::save(&self.state);
                 Ok(())
             }
+            Action::ConvertUnit(target) => {
+                let top = self.state.stack.last().ok_or(CalcError::StackUnderflow)?;
+                match top {
+                    CalcValue::Tagged(tv) => {
+                        // Validate target unit exists
+                        let target_display = lookup_unit(&target)
+                            .map(|u| u.display)
+                            .unwrap_or(target.as_str());
+                        if lookup_unit(target_display).is_none() {
+                            return Err(CalcError::InvalidInput(format!(
+                                "Unknown unit: {}",
+                                target
+                            )));
+                        }
+                        let converted = tv.convert_to(&target)?;
+                        *self.state.stack.last_mut().unwrap() = CalcValue::Tagged(converted);
+                        Ok(())
+                    }
+                    _ => Err(CalcError::IncompatibleUnits(
+                        "top of stack has no unit tag".to_string(),
+                    )),
+                }
+            }
             Action::Quit
             | Action::Noop
             | Action::Undo
@@ -460,7 +533,12 @@ impl App {
             | Action::PrecisionDigit(_)
             | Action::PrecisionBackspace
             | Action::PrecisionSubmit
-            | Action::PrecisionCancel => unreachable!("handled in apply()"),
+            | Action::PrecisionCancel
+            | Action::EnterConvertMode
+            | Action::ConvertChar(_)
+            | Action::ConvertBackspace
+            | Action::ConvertSubmit
+            | Action::ConvertCancel => unreachable!("handled in apply()"),
         }
     }
 }

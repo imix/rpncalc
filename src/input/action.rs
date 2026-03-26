@@ -45,6 +45,12 @@ pub enum Action {
     BrowseCursorDown,
     BrowseConfirm,
     BrowseCancel,
+    EnterConvertMode,
+    ConvertChar(char),
+    ConvertBackspace,
+    ConvertSubmit,
+    ConvertCancel,
+    ConvertUnit(String),
     Quit,
     Noop,
 }

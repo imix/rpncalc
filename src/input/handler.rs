@@ -32,6 +32,7 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Char('r') => Action::EnterChordMode(ChordCategory::Rounding),
             KeyCode::Char('n') => Action::Execute(Op::Negate),
             KeyCode::Char('u') => Action::Undo,
+            KeyCode::Char('U') => Action::EnterConvertMode,
             KeyCode::Char('y') => Action::Yank,
             KeyCode::Char('t') => Action::EnterChordMode(ChordCategory::Trig),
             KeyCode::Char('l') => Action::EnterChordMode(ChordCategory::Log),
@@ -102,6 +103,13 @@ pub fn handle_key(mode: &AppMode, event: KeyEvent) -> Action {
             KeyCode::Esc => Action::PrecisionCancel,
             KeyCode::Backspace => Action::PrecisionBackspace,
             KeyCode::Char(c) if c.is_ascii_digit() => Action::PrecisionDigit(c),
+            _ => Action::Noop,
+        },
+        AppMode::ConvertInput(_) => match event.code {
+            KeyCode::Enter => Action::ConvertSubmit,
+            KeyCode::Esc => Action::ConvertCancel,
+            KeyCode::Backspace => Action::ConvertBackspace,
+            KeyCode::Char(c) => Action::ConvertChar(c),
             _ => Action::Noop,
         },
     }

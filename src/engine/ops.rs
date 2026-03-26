@@ -2,6 +2,7 @@ use crate::engine::angle::AngleMode;
 use crate::engine::constants;
 use crate::engine::error::CalcError;
 use crate::engine::stack::CalcState;
+use crate::engine::units::TaggedValue;
 use crate::engine::value::CalcValue;
 use dashu::float::FBig;
 use dashu::integer::IBig;
@@ -66,57 +67,62 @@ pub enum Op {
 /// **Atomicity guarantee:** if `Err` is returned, the stack is unchanged.
 pub fn apply_op(state: &mut CalcState, op: Op) -> Result<(), CalcError> {
     match op {
-        // Binary arithmetic
-        Op::Add => binary_op(state, do_add),
-        Op::Sub => binary_op(state, do_sub),
-        Op::Mul => binary_op(state, do_mul),
-        Op::Div => binary_op(state, do_div),
-        Op::Pow => binary_op(state, do_pow),
-        Op::Mod => binary_op(state, do_mod),
-        // Binary bitwise
+        // Binary arithmetic — unit-aware intercept
+        Op::Add => tagged_binary_op(state, op, do_add),
+        Op::Sub => tagged_binary_op(state, op, do_sub),
+        Op::Mul => tagged_binary_op(state, op, do_mul),
+        Op::Div => tagged_binary_op(state, op, do_div),
+        Op::Pow => tagged_binary_op(state, op, do_pow),
+        Op::Mod => tagged_binary_op(state, op, do_mod),
+        // Binary bitwise — tagged values not supported in bitwise ops
         Op::And => binary_op(state, do_and),
         Op::Or => binary_op(state, do_or),
         Op::Xor => binary_op(state, do_xor),
         Op::Shl => binary_op(state, do_shl),
         Op::Shr => binary_op(state, do_shr),
-        // Unary
-        Op::Negate => unary_op(state, do_negate),
-        Op::Sqrt => unary_op(state, do_sqrt),
-        Op::Square => unary_op(state, do_sq),
-        Op::Reciprocal => unary_op(state, do_reciprocal),
-        Op::Abs => unary_op(state, do_abs),
+        // Unary — unit-aware intercept for relevant ops
+        Op::Negate => tagged_unary_op(state, op, do_negate),
+        Op::Abs => tagged_unary_op(state, op, do_abs),
+        Op::Floor => tagged_unary_op(state, op, do_floor),
+        Op::Ceil => tagged_unary_op(state, op, do_ceil),
+        Op::Trunc => tagged_unary_op(state, op, do_trunc),
+        Op::Sign => tagged_unary_op(state, op, do_sign),
+        // Compound-unit ops: error if tagged
+        Op::Sqrt => tagged_compound_error_unary(state, do_sqrt),
+        Op::Square => tagged_compound_error_unary(state, do_sq),
+        Op::Reciprocal => tagged_compound_error_unary(state, do_reciprocal),
         Op::Factorial => unary_op(state, do_factorial),
         Op::Not => unary_op(state, do_not),
-        // Trig — capture angle_mode before mutable borrow
+        // Trig — error if tagged (dimensioned trig is undefined)
         Op::Sin => {
             let m = state.angle_mode;
-            unary_op(state, |v| do_trig(v, m, f64::sin))
+            tagged_compound_error_unary(state, |v| do_trig(v, m, f64::sin))
         }
         Op::Cos => {
             let m = state.angle_mode;
-            unary_op(state, |v| do_trig(v, m, f64::cos))
+            tagged_compound_error_unary(state, |v| do_trig(v, m, f64::cos))
         }
         Op::Tan => {
             let m = state.angle_mode;
-            unary_op(state, |v| do_trig(v, m, f64::tan))
+            tagged_compound_error_unary(state, |v| do_trig(v, m, f64::tan))
         }
         Op::Asin => {
             let m = state.angle_mode;
-            unary_op(state, |v| do_atrig(v, m, f64::asin))
+            tagged_compound_error_unary(state, |v| do_atrig(v, m, f64::asin))
         }
         Op::Acos => {
             let m = state.angle_mode;
-            unary_op(state, |v| do_atrig(v, m, f64::acos))
+            tagged_compound_error_unary(state, |v| do_atrig(v, m, f64::acos))
         }
         Op::Atan => {
             let m = state.angle_mode;
-            unary_op(state, |v| do_atrig(v, m, f64::atan))
+            tagged_compound_error_unary(state, |v| do_atrig(v, m, f64::atan))
         }
-        // Log/Exp
-        Op::Log10 => unary_op(state, do_log10),
-        Op::Ln => unary_op(state, do_ln),
-        Op::Exp => unary_op(state, do_exp),
-        Op::Exp10 => unary_op(state, do_exp10),
+        // Log/Exp — error if tagged
+        Op::Log10 => tagged_compound_error_unary(state, do_log10),
+        Op::Ln => tagged_compound_error_unary(state, do_ln),
+        Op::Exp => tagged_compound_error_unary(state, do_exp),
+        Op::Exp10 => tagged_compound_error_unary(state, do_exp10),
         // Stack ops — delegate to CalcState (already atomic)
         Op::Swap => state.swap(),
         Op::Dup => state.dup(),
@@ -126,12 +132,8 @@ pub fn apply_op(state: &mut CalcState, op: Op) -> Result<(), CalcError> {
             state.clear();
             Ok(())
         }
-        // Rounding / sign
-        Op::Floor => unary_op(state, do_floor),
-        Op::Ceil => unary_op(state, do_ceil),
-        Op::Trunc => unary_op(state, do_trunc),
-        Op::Sign => unary_op(state, do_sign),
-        Op::Round => binary_op(state, do_round),
+        // Rounding / sign — Floor/Ceil/Trunc/Sign handled above with tagged_unary_op
+        Op::Round => tagged_binary_op(state, op, do_round),
         // Constants
         Op::PushPi => {
             state.push(constants::pi());
@@ -184,12 +186,195 @@ fn unary_op(
     Ok(())
 }
 
+// ── Unit-aware dispatch helpers ──────────────────────────────────────────────
+
+/// Binary op with unit-aware pre-dispatch.
+/// - Both Tagged: validate compatibility and convert, then apply `f` to plain values.
+/// - One Tagged + one plain: for Add/Sub → error; for Mul/Div → carry unit.
+/// - Both plain: delegate directly to `f`.
+fn tagged_binary_op(
+    state: &mut CalcState,
+    op: Op,
+    f: impl Fn(CalcValue, CalcValue) -> Result<CalcValue, CalcError>,
+) -> Result<(), CalcError> {
+    if state.depth() < 2 {
+        return Err(CalcError::StackUnderflow);
+    }
+    let n = state.stack.len();
+    let x = state.stack[n - 1].clone(); // position 1 (top)
+    let y = state.stack[n - 2].clone(); // position 2
+
+    match (&y, &x) {
+        (CalcValue::Tagged(ty), CalcValue::Tagged(tx)) => {
+            // Both tagged — check category compatibility
+            let unit_x = tx.unit_def().ok_or_else(|| {
+                CalcError::IncompatibleUnits(format!("unknown unit: {}", tx.unit))
+            })?;
+            let unit_y = ty.unit_def().ok_or_else(|| {
+                CalcError::IncompatibleUnits(format!("unknown unit: {}", ty.unit))
+            })?;
+
+            match op {
+                Op::Add | Op::Sub => {
+                    if unit_x.category != unit_y.category {
+                        return Err(CalcError::IncompatibleUnits(format!(
+                            "{} and {}",
+                            unit_y.category.name(),
+                            unit_x.category.name()
+                        )));
+                    }
+                    // Convert y to x's unit, operate, result has x's unit
+                    let converted_y = crate::engine::units::convert(ty.amount, unit_y, unit_x)?;
+                    let plain_y = CalcValue::from_f64(converted_y);
+                    let plain_x = CalcValue::from_f64(tx.amount);
+                    let plain_result = f(plain_y, plain_x)?;
+                    let result = CalcValue::Tagged(TaggedValue {
+                        amount: plain_result.to_f64(),
+                        unit: tx.unit.clone(),
+                    });
+                    state.stack.truncate(n - 2);
+                    state.push(result);
+                    Ok(())
+                }
+                Op::Mul => Err(CalcError::IncompatibleUnits(
+                    "compound unit not supported".to_string(),
+                )),
+                Op::Div => {
+                    if unit_x.category != unit_y.category {
+                        return Err(CalcError::IncompatibleUnits(
+                            "compound unit not supported".to_string(),
+                        ));
+                    }
+                    // Same-category division: convert y to x's unit, divide → dimensionless
+                    let converted_y = crate::engine::units::convert(ty.amount, unit_y, unit_x)?;
+                    let plain_y = CalcValue::from_f64(converted_y);
+                    let plain_x = CalcValue::from_f64(tx.amount);
+                    let result = f(plain_y, plain_x)?;
+                    state.stack.truncate(n - 2);
+                    state.push(result);
+                    Ok(())
+                }
+                Op::Pow | Op::Mod | Op::Round => Err(CalcError::IncompatibleUnits(
+                    "compound unit not supported".to_string(),
+                )),
+                _ => {
+                    // Bitwise etc — not expected here but fall through
+                    binary_op(state, f)
+                }
+            }
+        }
+
+        (CalcValue::Tagged(_), _) | (_, CalcValue::Tagged(_)) => {
+            // One tagged, one plain
+            match op {
+                Op::Add | Op::Sub => Err(CalcError::IncompatibleUnits(
+                    "cannot mix unit-tagged and plain values with + or -".to_string(),
+                )),
+                Op::Mul => {
+                    // plain × tagged or tagged × plain → result has tagged's unit
+                    let (tagged, plain, tagged_is_x) = match (&y, &x) {
+                        (CalcValue::Tagged(t), _) => (t.clone(), x.clone(), false),
+                        (_, CalcValue::Tagged(t)) => (t.clone(), y.clone(), true),
+                        _ => unreachable!(),
+                    };
+                    let plain_tagged = CalcValue::from_f64(tagged.amount);
+                    let (a_arg, b_arg) = if tagged_is_x {
+                        (plain.clone(), plain_tagged)
+                    } else {
+                        (plain_tagged, plain.clone())
+                    };
+                    let plain_result = f(a_arg, b_arg)?;
+                    let result = CalcValue::Tagged(TaggedValue {
+                        amount: plain_result.to_f64(),
+                        unit: tagged.unit.clone(),
+                    });
+                    state.stack.truncate(n - 2);
+                    state.push(result);
+                    Ok(())
+                }
+                Op::Div => {
+                    match (&y, &x) {
+                        (CalcValue::Tagged(ty), _) => {
+                            // tagged(y) / plain(x) → result has tagged's unit
+                            let plain_y = CalcValue::from_f64(ty.amount);
+                            let plain_result = f(plain_y, x.clone())?;
+                            let result = CalcValue::Tagged(TaggedValue {
+                                amount: plain_result.to_f64(),
+                                unit: ty.unit.clone(),
+                            });
+                            state.stack.truncate(n - 2);
+                            state.push(result);
+                            Ok(())
+                        }
+                        (_, CalcValue::Tagged(_)) => {
+                            // plain(y) / tagged(x) → compound unit, not supported
+                            Err(CalcError::IncompatibleUnits(
+                                "compound unit not supported".to_string(),
+                            ))
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+                _ => Err(CalcError::IncompatibleUnits(
+                    "compound unit not supported".to_string(),
+                )),
+            }
+        }
+
+        _ => binary_op(state, f),
+    }
+}
+
+/// Unary op with unit-aware pre-dispatch. Ops that preserve units (negate, abs, floor,
+/// ceil, trunc, round, sign) extract the amount, apply `f`, and re-wrap with the unit.
+fn tagged_unary_op(
+    state: &mut CalcState,
+    op: Op,
+    f: impl Fn(CalcValue) -> Result<CalcValue, CalcError>,
+) -> Result<(), CalcError> {
+    let top = state.peek().ok_or(CalcError::StackUnderflow)?.clone();
+    match top {
+        CalcValue::Tagged(ref t) => {
+            let plain = CalcValue::from_f64(t.amount);
+            let plain_result = f(plain)?;
+            let unit = t.unit.clone();
+            let result = match op {
+                // Sign returns dimensionless (+1, 0, -1)
+                Op::Sign => plain_result,
+                _ => CalcValue::Tagged(TaggedValue {
+                    amount: plain_result.to_f64(),
+                    unit,
+                }),
+            };
+            state.pop().expect("SAFETY: peeked above");
+            state.push(result);
+            Ok(())
+        }
+        _ => unary_op(state, f),
+    }
+}
+
+/// Unary op that errors if the top value is unit-tagged (would produce a compound unit).
+fn tagged_compound_error_unary(
+    state: &mut CalcState,
+    f: impl Fn(CalcValue) -> Result<CalcValue, CalcError>,
+) -> Result<(), CalcError> {
+    let top = state.peek().ok_or(CalcError::StackUnderflow)?;
+    if matches!(top, CalcValue::Tagged(_)) {
+        return Err(CalcError::IncompatibleUnits(
+            "compound unit not supported".to_string(),
+        ));
+    }
+    unary_op(state, f)
+}
+
 fn do_add(a: CalcValue, b: CalcValue) -> Result<CalcValue, CalcError> {
     match (a, b) {
         (CalcValue::Integer(x), CalcValue::Integer(y)) => Ok(CalcValue::Integer(x + y)),
         (CalcValue::Float(x), CalcValue::Float(y)) => Ok(CalcValue::Float(x + y)),
         (CalcValue::Integer(x), CalcValue::Float(y)) => Ok(CalcValue::Float(int_to_fbig(&x) + y)),
         (CalcValue::Float(x), CalcValue::Integer(y)) => Ok(CalcValue::Float(x + int_to_fbig(&y))),
+        _ => unreachable!("Tagged values are intercepted by tagged_binary_op"),
     }
 }
 
@@ -199,6 +384,7 @@ fn do_sub(a: CalcValue, b: CalcValue) -> Result<CalcValue, CalcError> {
         (CalcValue::Float(x), CalcValue::Float(y)) => Ok(CalcValue::Float(x - y)),
         (CalcValue::Integer(x), CalcValue::Float(y)) => Ok(CalcValue::Float(int_to_fbig(&x) - y)),
         (CalcValue::Float(x), CalcValue::Integer(y)) => Ok(CalcValue::Float(x - int_to_fbig(&y))),
+        _ => unreachable!("Tagged values are intercepted by tagged_binary_op"),
     }
 }
 
@@ -208,6 +394,7 @@ fn do_mul(a: CalcValue, b: CalcValue) -> Result<CalcValue, CalcError> {
         (CalcValue::Float(x), CalcValue::Float(y)) => Ok(CalcValue::Float(x * y)),
         (CalcValue::Integer(x), CalcValue::Float(y)) => Ok(CalcValue::Float(int_to_fbig(&x) * y)),
         (CalcValue::Float(x), CalcValue::Integer(y)) => Ok(CalcValue::Float(x * int_to_fbig(&y))),
+        _ => unreachable!("Tagged values are intercepted by tagged_binary_op"),
     }
 }
 
@@ -242,6 +429,7 @@ fn do_div(a: CalcValue, b: CalcValue) -> Result<CalcValue, CalcError> {
             }
             Ok(CalcValue::Float(x / int_to_fbig(&y)))
         }
+        _ => unreachable!("Tagged values are intercepted by tagged_binary_op"),
     }
 }
 
@@ -288,6 +476,7 @@ fn do_negate(v: CalcValue) -> Result<CalcValue, CalcError> {
     match v {
         CalcValue::Integer(x) => Ok(CalcValue::Integer(-x)),
         CalcValue::Float(x) => Ok(CalcValue::Float(-x)),
+        CalcValue::Tagged(_) => unreachable!("Tagged handled by tagged_unary_op"),
     }
 }
 
@@ -305,6 +494,7 @@ fn do_sq(v: CalcValue) -> Result<CalcValue, CalcError> {
     match v {
         CalcValue::Integer(x) => Ok(CalcValue::Integer(x.clone() * x)),
         CalcValue::Float(x) => Ok(CalcValue::Float(x.clone() * x)),
+        CalcValue::Tagged(_) => unreachable!("Tagged blocked by tagged_compound_error_unary"),
     }
 }
 
@@ -330,6 +520,7 @@ fn do_abs(v: CalcValue) -> Result<CalcValue, CalcError> {
             let val = x.to_f64().value();
             Ok(CalcValue::from_f64(val.abs()))
         }
+        CalcValue::Tagged(_) => unreachable!("Tagged handled by tagged_unary_op"),
     }
 }
 
@@ -349,14 +540,14 @@ fn do_factorial(v: CalcValue) -> Result<CalcValue, CalcError> {
             }
             Ok(CalcValue::Integer(result))
         }
-        CalcValue::Float(_) => Err(CalcError::NotAnInteger),
+        CalcValue::Float(_) | CalcValue::Tagged(_) => Err(CalcError::NotAnInteger),
     }
 }
 
 fn do_not(v: CalcValue) -> Result<CalcValue, CalcError> {
     match v {
         CalcValue::Integer(x) => Ok(CalcValue::Integer(!x)),
-        CalcValue::Float(_) => Err(CalcError::NotAnInteger),
+        CalcValue::Float(_) | CalcValue::Tagged(_) => Err(CalcError::NotAnInteger),
     }
 }
 
@@ -470,6 +661,7 @@ fn do_floor(v: CalcValue) -> Result<CalcValue, CalcError> {
             }
             Ok(CalcValue::from_f64(x.floor()))
         }
+        CalcValue::Tagged(_) => unreachable!("Tagged handled by tagged_unary_op"),
     }
 }
 
@@ -483,6 +675,7 @@ fn do_ceil(v: CalcValue) -> Result<CalcValue, CalcError> {
             }
             Ok(CalcValue::from_f64(x.ceil()))
         }
+        CalcValue::Tagged(_) => unreachable!("Tagged handled by tagged_unary_op"),
     }
 }
 
@@ -496,6 +689,7 @@ fn do_trunc(v: CalcValue) -> Result<CalcValue, CalcError> {
             }
             Ok(CalcValue::from_f64(x.trunc()))
         }
+        CalcValue::Tagged(_) => unreachable!("Tagged handled by tagged_unary_op"),
     }
 }
 
@@ -520,6 +714,7 @@ fn do_sign(v: CalcValue) -> Result<CalcValue, CalcError> {
                 Ok(CalcValue::Integer(IBig::from(1i32)))
             }
         }
+        CalcValue::Tagged(_) => unreachable!("Tagged handled by tagged_unary_op"),
     }
 }
 
@@ -539,6 +734,7 @@ fn do_round(value: CalcValue, precision: CalcValue) -> Result<CalcValue, CalcErr
             }
             x as i32
         }
+        CalcValue::Tagged(_) => return Err(CalcError::NotAnInteger),
     };
     match value {
         CalcValue::Integer(_) if n >= 0 => Ok(value),
@@ -555,6 +751,7 @@ fn do_round(value: CalcValue, precision: CalcValue) -> Result<CalcValue, CalcErr
             let scale = 10f64.powi(n);
             Ok(CalcValue::from_f64((x * scale).round() / scale))
         }
+        CalcValue::Tagged(_) => unreachable!("Tagged handled by tagged_binary_op"),
     }
 }
 

@@ -25,4 +25,6 @@ pub enum AppMode {
     Browse(usize),
     /// Precision entry sub-mode. Buffer accumulates up to 2 digit chars.
     PrecisionInput(String),
+    /// Unit-conversion target entry. Buffer accumulates the target unit abbreviation.
+    ConvertInput(String),
 }

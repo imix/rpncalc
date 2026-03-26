@@ -31,6 +31,7 @@ const STACK_OPS: &[(&str, &str)] = &[
     ("u", "undo"),
     ("y", "yank"),
     ("S", "store"),
+    ("U", "unit"),
 ];
 
 const SESSION_OPS: &[(&str, &str)] = &[("Q", "quit")];
@@ -163,6 +164,22 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
             Line::raw("Esc    cancel"),
             Line::raw("↑      deeper"),
             Line::raw("↓      toward top"),
+        ];
+        f.render_widget(Paragraph::new(lines), area);
+        return;
+    }
+
+    if matches!(mode, AppMode::ConvertInput(_)) {
+        let lines = vec![
+            Line::styled("CONVERT TO UNIT", dim),
+            Line::raw(""),
+            Line::raw("Enter  convert"),
+            Line::raw("Esc    cancel"),
+            Line::raw("Bksp   delete"),
+            Line::raw(""),
+            Line::styled("e.g. g  kg  oz  lb", dim),
+            Line::styled("     m  cm  ft  in", dim),
+            Line::styled("     °C  °F  C  F", dim),
         ];
         f.render_widget(Paragraph::new(lines), area);
         return;

@@ -38,8 +38,11 @@
 - `src/engine/ops.rs` — AC-7 (same unit add), AC-8 (cross-unit add → p1's unit), AC-11 (incompatible categories error), AC-14 (scalar×tagged), AC-15 (plain+tagged error), AC-17 (same-unit div → dimensionless), AC-18 (tagged×tagged error), AC-20 (negate preserves unit)
 - `src/tui/app.rs` — AC-3 (weight convert), AC-5 (°F→°C), AC-12 (incompatible convert error), AC-13 (convert on unitless error)
 
+## DoD Resolutions
+- condition: document-current | note: README updated with Physical Units section (unit input syntax, supported units table, conversion with U key and `in <unit>` Alpha command, arithmetic behaviour for same-category values, scalar multiplication, dimensionless division, temperature conversion). U key added to Normal Mode key reference table. Unit Mode key table added. `in <unit>` added to Alpha mode commands table. All user-visible behaviour is accurately reflected. | resolved: 2026-03-26
+
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-26
 - **Last verified:** 2026-03-26
 

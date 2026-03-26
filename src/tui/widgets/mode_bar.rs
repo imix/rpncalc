@@ -26,6 +26,7 @@ pub fn render(
         AppMode::Alpha(_) => "[ALPHA]",
         AppMode::Browse(_) => "[BROWSE]",
         AppMode::PrecisionInput(_) => "[PREC]",
+        AppMode::ConvertInput(_) => "[UNIT]",
     };
 
     let notation_str = match state.notation {

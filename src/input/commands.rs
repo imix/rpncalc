@@ -9,6 +9,7 @@ pub fn parse_command(input: &str) -> Result<Action, CalcError> {
         [name, "RCL"] => Ok(Action::RecallRegister(name.to_string())),
         [name, "DEL"] => Ok(Action::DeleteRegister(name.to_string())),
         ["RESET"] => Ok(Action::ResetSession),
+        ["in", unit] => Ok(Action::ConvertUnit(unit.to_string())),
         _ => Err(CalcError::InvalidInput(format!(
             "Unknown command: {}",
             input

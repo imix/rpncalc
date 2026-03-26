@@ -137,6 +137,7 @@ Press *   →  1: 14
 | `Ctrl-r` | Redo |
 | `y` | Yank (copy position 1 to clipboard) |
 | `S` | Store position 1 to a named register |
+| `U` | Convert position 1 to a different unit (enters Unit mode) |
 | `i` | Enter Alpha mode (for register commands) |
 | `Q` | Quit |
 
@@ -233,6 +234,92 @@ Press `Esc` at any point to cancel.
 | `s` | `#FF` |
 | `i` | `FFh` |
 
+### Unit Mode
+
+Entered by pressing `U` in Normal mode when the stack has ≥ 1 item.
+
+| Key | Action |
+|-----|--------|
+| (any text) | Build the target unit abbreviation |
+| `Enter` | Convert position 1 to the entered unit |
+| `Esc` | Cancel, stack unchanged |
+| `Backspace` | Delete last character |
+
+---
+
+## Physical Units
+
+Tag values with physical units to perform unit-aware calculations.
+
+### Entering unit-tagged values
+
+Type a number followed by a unit abbreviation (space optional), then press `Enter`:
+
+```
+1.9 oz      → pushes 1.9 oz onto the stack
+98.6F       → pushes 98.6 °F (F is an alias for °F)
+6 ft        → pushes 6 ft
+```
+
+### Supported units
+
+| Category | Units |
+|----------|-------|
+| Weight | `oz`, `lb`, `g`, `kg` |
+| Length | `mm`, `cm`, `m`, `km`, `in`, `ft`, `yd`, `mi` |
+| Temperature | `°C`, `°F` (aliases: `C`, `F`, `degC`, `degF`) |
+
+### Converting units
+
+Press `U` in Normal mode, type the target unit, then `Enter`:
+
+```
+1.9 oz  → stack: [1.9 oz]
+U       → enter Unit mode
+g Enter → converts to 53.864 g
+```
+
+Or use Alpha mode with `in <unit>`:
+
+```
+i           → enter Alpha mode
+in g Enter  → converts position 1 to grams
+```
+
+### Arithmetic with tagged values
+
+Operations between two values of the **same category** auto-convert position 2 into position 1's unit before operating:
+
+```
+1 kg        → stack: [1 kg]
+500 g       → stack: [1 kg, 500 g]
++           → result: 1.5 kg  (500 g converted to 0.5 kg first)
+```
+
+Multiplying or dividing a tagged value by a plain number preserves the unit:
+
+```
+6 ft        → stack: [6 ft]
+2           → stack: [6 ft, 2]
+*           → result: 12 ft
+```
+
+Dividing two values of the same category yields a dimensionless ratio:
+
+```
+6 ft        → stack: [6 ft]
+2 ft        → stack: [6 ft, 2 ft]
+/           → result: 3  (dimensionless)
+```
+
+Temperature arithmetic (°C and °F are not additive — only conversion is meaningful):
+
+```
+98.6 F      → stack: [98.6 °F]
+U           → Unit mode
+C Enter     → result: 37 °C
+```
+
 ---
 
 ## Named Registers
@@ -255,6 +342,8 @@ Press `i` to enter Alpha mode, then type a command and press `Enter`:
 | `name STORE` | Pop position 1 and store it under `name` |
 | `name RCL` | Push the value stored in `name` onto the stack |
 | `name DEL` | Delete the register `name` |
+| `in <unit>` | Convert position 1 to `<unit>` (e.g. `in kg`, `in °F`) |
+| `RESET` | Clear stack and registers |
 
 Example — store π, do some work, recall it:
 

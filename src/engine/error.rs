@@ -7,6 +7,7 @@ pub enum CalcError {
     DomainError(String),
     InvalidInput(String),
     NotAnInteger,
+    IncompatibleUnits(String),
 }
 
 impl fmt::Display for CalcError {
@@ -17,6 +18,7 @@ impl fmt::Display for CalcError {
             CalcError::DomainError(msg) => write!(f, "Domain error: {}", msg),
             CalcError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
             CalcError::NotAnInteger => write!(f, "Operation requires an integer"),
+            CalcError::IncompatibleUnits(msg) => write!(f, "Incompatible units: {}", msg),
         }
     }
 }

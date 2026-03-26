@@ -1,3 +1,4 @@
+use crate::engine::units::{lookup_unit, TaggedValue};
 use crate::engine::value::CalcValue;
 use crate::engine::CalcError;
 use dashu::float::round::mode::Zero;
@@ -5,61 +6,103 @@ use dashu::float::Context;
 use dashu::float::FBig;
 use dashu::integer::IBig;
 
-#[allow(dead_code)]
-pub fn parse_value(input: &str) -> Result<CalcValue, CalcError> {
-    // Remove underscores (digit separators)
-    let clean: String = input.chars().filter(|&c| c != '_').collect();
+/// All known unit abbreviations sorted longest-first so longer abbrevs match before shorter ones
+/// (e.g. "degF" before "F", "°F" before "F").
+static UNIT_ABBREVS_BY_LENGTH: std::sync::OnceLock<Vec<&'static str>> = std::sync::OnceLock::new();
 
+fn unit_abbrevs_sorted() -> &'static Vec<&'static str> {
+    UNIT_ABBREVS_BY_LENGTH.get_or_init(|| {
+        // These are the canonical + alias abbreviations in descending length order
+        let mut abbrevs = vec![
+            "degF", "degC", "°F", "°C", "km", "mm", "cm", "ft", "yd", "mi",
+            "oz", "lb", "kg", "in", "F", "C", "g", "m",
+        ];
+        abbrevs.sort_by_key(|a| std::cmp::Reverse(a.len()));
+        abbrevs
+    })
+}
+
+/// Try to parse a unit-tagged value from input like "1.9 oz", "1.9oz", "98.6F", "-1.9 kg".
+/// Returns Ok(Some(CalcValue::Tagged(...))) on success, Ok(None) if no unit found.
+fn try_parse_tagged(input: &str) -> Result<Option<CalcValue>, CalcError> {
+    let trimmed = input.trim();
+    for abbrev in unit_abbrevs_sorted() {
+        // Try with space separator: "1.9 oz"
+        let with_space = format!(" {}", abbrev);
+        if let Some(num_part) = trimmed.strip_suffix(abbrev) {
+            let num_str = num_part.trim_end();
+            if num_str.is_empty() {
+                continue;
+            }
+            // Verify num_str parses as a number
+            if let Ok(base_val) = parse_number_only(num_str) {
+                let unit_abbrev = abbrev;
+                // Check unit is known
+                if lookup_unit(unit_abbrev).is_none() {
+                    // abbrev is in our hardcoded list, should always be found
+                    continue;
+                }
+                let tagged = TaggedValue::new(base_val.to_f64(), *unit_abbrev);
+                return Ok(Some(CalcValue::Tagged(tagged)));
+            }
+        }
+        let _ = with_space; // suppress unused warning
+    }
+    Ok(None)
+}
+
+/// Parse a pure number (no unit) from a string. Returns CalcValue::Integer or Float.
+fn parse_number_only(s: &str) -> Result<CalcValue, CalcError> {
+    let clean: String = s.chars().filter(|&c| c != '_').collect();
     if clean.is_empty() {
         return Err(CalcError::InvalidInput("Empty input".to_string()));
     }
-
-    // Check for explicit base prefixes
-    if let Some(rest) = clean
-        .strip_prefix("0x")
-        .or_else(|| clean.strip_prefix("0X"))
-    {
+    if let Some(rest) = clean.strip_prefix("0x").or_else(|| clean.strip_prefix("0X")) {
         return parse_hex(rest);
     }
-    if let Some(rest) = clean
-        .strip_prefix("0o")
-        .or_else(|| clean.strip_prefix("0O"))
-    {
+    if let Some(rest) = clean.strip_prefix("0o").or_else(|| clean.strip_prefix("0O")) {
         return parse_octal(rest);
     }
-    if let Some(rest) = clean
-        .strip_prefix("0b")
-        .or_else(|| clean.strip_prefix("0B"))
-    {
+    if let Some(rest) = clean.strip_prefix("0b").or_else(|| clean.strip_prefix("0B")) {
         return parse_binary(rest);
     }
-    // Handle negative with prefix
-    if let Some(rest) = clean
-        .strip_prefix("-0x")
-        .or_else(|| clean.strip_prefix("-0X"))
-    {
+    if let Some(rest) = clean.strip_prefix("-0x").or_else(|| clean.strip_prefix("-0X")) {
         return parse_hex(rest).map(negate);
     }
-    if let Some(rest) = clean
-        .strip_prefix("-0o")
-        .or_else(|| clean.strip_prefix("-0O"))
-    {
+    if let Some(rest) = clean.strip_prefix("-0o").or_else(|| clean.strip_prefix("-0O")) {
         return parse_octal(rest).map(negate);
     }
-    if let Some(rest) = clean
-        .strip_prefix("-0b")
-        .or_else(|| clean.strip_prefix("-0B"))
-    {
+    if let Some(rest) = clean.strip_prefix("-0b").or_else(|| clean.strip_prefix("-0B")) {
         return parse_binary(rest).map(negate);
     }
-
-    // Check if it's a float (contains '.' or 'e'/'E')
     let lower = clean.to_lowercase();
     if lower.contains('.') || lower.contains('e') {
         parse_float(&clean)
     } else {
         parse_integer(&clean)
     }
+}
+
+pub fn parse_value(input: &str) -> Result<CalcValue, CalcError> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Err(CalcError::InvalidInput("Empty input".to_string()));
+    }
+    // Skip unit detection for base-prefixed literals (hex/octal/binary).
+    let lower = trimmed.to_lowercase();
+    let is_prefixed = lower.starts_with("0x")
+        || lower.starts_with("0o")
+        || lower.starts_with("0b")
+        || lower.starts_with("-0x")
+        || lower.starts_with("-0o")
+        || lower.starts_with("-0b");
+    if !is_prefixed {
+        // Try unit-tagged form first: "1.9 oz", "98.6F", "98.6 degF", etc.
+        if let Some(tagged) = try_parse_tagged(trimmed)? {
+            return Ok(tagged);
+        }
+    }
+    parse_number_only(trimmed)
 }
 
 fn parse_hex(s: &str) -> Result<CalcValue, CalcError> {
@@ -145,6 +188,10 @@ fn negate(v: CalcValue) -> CalcValue {
     match v {
         CalcValue::Integer(n) => CalcValue::Integer(-n),
         CalcValue::Float(f) => CalcValue::Float(-f),
+        CalcValue::Tagged(mut t) => {
+            t.amount = -t.amount;
+            CalcValue::Tagged(t)
+        }
     }
 }
 

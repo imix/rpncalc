@@ -1,5 +1,6 @@
 use crate::engine::base::Base;
 use crate::engine::notation::Notation;
+use crate::engine::units::TaggedValue;
 use dashu::float::FBig;
 use dashu::integer::IBig;
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,7 @@ use std::fmt;
 pub enum CalcValue {
     Integer(IBig),
     Float(FBig),
+    Tagged(TaggedValue),
 }
 
 impl CalcValue {
@@ -16,6 +18,7 @@ impl CalcValue {
         match self {
             CalcValue::Integer(n) => n.to_string().parse::<f64>().unwrap_or(f64::NAN),
             CalcValue::Float(f) => f.to_f64().value(),
+            CalcValue::Tagged(t) => t.amount,
         }
     }
 
@@ -31,10 +34,15 @@ impl CalcValue {
     }
 
     #[allow(dead_code)]
+    pub fn is_tagged(&self) -> bool {
+        matches!(self, CalcValue::Tagged(_))
+    }
+
+    #[allow(dead_code)]
     pub fn to_ibig(&self) -> Option<IBig> {
         match self {
             CalcValue::Integer(n) => Some(n.clone()),
-            CalcValue::Float(_) => None,
+            CalcValue::Float(_) | CalcValue::Tagged(_) => None,
         }
     }
 
@@ -44,6 +52,7 @@ impl CalcValue {
         match self {
             CalcValue::Integer(_) => self.display_with_base(base),
             CalcValue::Float(f) => format_fbig_prec(f, precision),
+            CalcValue::Tagged(t) => t.display(),
         }
     }
 
@@ -51,6 +60,11 @@ impl CalcValue {
     /// Integers follow Sci/Auto rules using natural exact representation; precision is not applied.
     pub fn display_with_notation(&self, base: Base, precision: usize, notation: Notation) -> String {
         match self {
+            CalcValue::Tagged(t) => {
+                // Format numeric part with notation, then append unit
+                let numeric = format_f64_notation(t.amount, precision, notation);
+                format!("{} {}", numeric, t.unit)
+            }
             CalcValue::Integer(n) => {
                 let use_sci = match notation {
                     Notation::Fixed => false,
@@ -73,6 +87,7 @@ impl CalcValue {
 
     pub fn display_with_base(&self, base: Base) -> String {
         match self {
+            CalcValue::Tagged(t) => t.display(),
             CalcValue::Integer(n) => {
                 if *n == IBig::ZERO {
                     return "0".to_string();
@@ -140,6 +155,70 @@ fn format_ibig_base(n: &IBig, base: Base) -> String {
             .map(|c| c.to_uppercase().next().unwrap_or(*c))
             .collect(),
         _ => digits.iter().collect(),
+    }
+}
+
+/// Shortest decimal representation of an f64, avoiding spurious digits.
+pub fn format_f64_shortest(val: f64) -> String {
+    if val.is_nan() || val.is_infinite() {
+        return format!("{}", val);
+    }
+    format!("{}", val)
+}
+
+/// Format an f64 with notation/precision, used for tagged value display.
+pub(crate) fn format_f64_notation(val: f64, precision: usize, notation: Notation) -> String {
+    if val.is_nan() || val.is_infinite() {
+        return format!("{}", val);
+    }
+    let use_sci = match notation {
+        Notation::Fixed => false,
+        Notation::Sci => true,
+        Notation::Auto => {
+            let abs = val.abs();
+            abs != 0.0 && (abs >= 1e10 || abs < 1e-4)
+        }
+    };
+    if use_sci {
+        let natural_e = format!("{:e}", val);
+        let natural_dp = natural_e
+            .find('e')
+            .and_then(|e| natural_e[..e].find('.').map(|d| e - d - 1))
+            .unwrap_or(0);
+        let s = if natural_dp <= precision {
+            natural_e
+        } else {
+            format!("{:.prec$e}", val, prec = precision)
+        };
+        if let Some(e_pos) = s.find('e') {
+            let mantissa = &s[..e_pos];
+            let exponent = &s[e_pos + 1..];
+            let trimmed = if mantissa.contains('.') {
+                mantissa.trim_end_matches('0').trim_end_matches('.').to_string()
+            } else {
+                mantissa.to_string()
+            };
+            format!("{}e{}", trimmed, exponent.trim_start_matches('+'))
+        } else {
+            s
+        }
+    } else {
+        // fixed: use Ryu shortest, capped at precision decimal places
+        let natural = format!("{}", val);
+        let nat_dp = natural
+            .find('.')
+            .map(|pos| natural.len() - pos - 1)
+            .unwrap_or(0);
+        if nat_dp <= precision {
+            natural
+        } else {
+            let s = format!("{:.prec$}", val, prec = precision);
+            if s.contains('.') {
+                s.trim_end_matches('0').trim_end_matches('.').to_string()
+            } else {
+                s
+            }
+        }
     }
 }
 
