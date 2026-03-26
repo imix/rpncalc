@@ -18,22 +18,29 @@
 - Float detection is heuristic: presence of `.` or `e`/`E` in input;
   everything else is attempted as arbitrary-precision integer (IBig)
 - f64 intermediate used for float parsing before conversion to FBig
+- `AppMode::InsertUnit(String)` — new mode entered when space is typed in
+  Insert mode with a non-empty buffer; all keys are literal (no shortcuts),
+  enabling compound unit entry like `1 m/s`. Reuses `InsertChar`/`InsertSubmit`/
+  `InsertBackspace`/`InsertCancel` actions; no new actions required. The space
+  check is in `app.rs` `InsertChar` handler, not in `handler.rs`, to keep the
+  mode transition logic co-located with state mutation.
 
 ## Source Files
-- `src/input/mode.rs` — AppMode enum: Normal, Insert(String), Alpha(String),
-  AlphaStore(String), Chord(ChordCategory)
+- `src/input/mode.rs` — AppMode enum: Normal, Insert(String), InsertUnit(String),
+  Alpha(String), AlphaStore(String), Chord(ChordCategory)
 - `src/input/action.rs` — Action enum: InsertChar/InsertSubmit/InsertSubmitThen/
   InsertBackspace/InsertCancel for Insert mode; AlphaChar/AlphaSubmit/
   AlphaBackspace/AlphaCancel for Alpha and AlphaStore modes
 - `src/input/handler.rs` — handle_key(): digits → InsertChar, i → EnterAlphaMode;
-  Insert mode arm with InsertSubmitThen shortcuts; Alpha mode arm (all chars literal)
-- `src/tui/app.rs` — apply(): InsertSubmit parses number; AlphaSubmit dispatches
-  register commands (STORE/RCL/DEL); InsertSubmitThen submits buffer then executes op
-- `src/tui/widgets/mode_bar.rs` — displays [INSERT] for Insert/AlphaStore, [ALPHA]
-  for Alpha, [NORMAL] for Normal/Chord
-- `src/tui/widgets/input_line.rs` — shows buffer for Insert, Alpha, and AlphaStore
-- `src/tui/widgets/hints_pane.rs` — Insert mode shows op shortcuts; Alpha mode shows
-  "all chars literal" hint with no shortcuts
+  Insert mode arm with InsertSubmitThen shortcuts; InsertUnit arm (all chars literal
+  via InsertChar); Alpha mode arm (all chars literal)
+- `src/tui/app.rs` — apply(): InsertChar(' ') on non-empty Insert buffer → InsertUnit;
+  InsertSubmit handles both Insert and InsertUnit; InsertBackspace handles both
+- `src/tui/widgets/mode_bar.rs` — displays [INSERT] for Insert/InsertUnit/AlphaStore,
+  [ALPHA] for Alpha, [NORMAL] for Normal/Chord
+- `src/tui/widgets/input_line.rs` — shows buffer for Insert, InsertUnit, Alpha, AlphaStore
+- `src/tui/widgets/hints_pane.rs` — Insert mode shows op shortcuts; InsertUnit shows
+  "unit expression — all keys literal" hint; Alpha mode shows "all chars literal"
 - `src/input/parser.rs` — parse_value(): parses string into CalcValue
 - `src/engine/stack.rs` — CalcState::push(): appends parsed value to stack
 
@@ -44,13 +51,16 @@
 - `08fe974b28285b99ef851a0186131def26cc2cf2` — (auto-linked by taproot link-commits)
 
 ## Tests
-- `src/input/handler.rs` — handler tests: Insert mode op shortcuts
-  (InsertSubmitThen), Alpha mode all-chars-literal (no shortcuts for r/s/d/etc.)
-- `src/tui/app.rs` — app tests: InsertChar creates AppMode::Insert, InsertSubmit
-  parses numbers, AlphaSubmit dispatches commands (STORE/RCL), AlphaCancel
-- `src/tui/widgets/mode_bar.rs` — Insert → [INSERT], Alpha → [ALPHA]
+- `src/input/handler.rs` — Insert mode op shortcuts (InsertSubmitThen); InsertUnit
+  all-chars-literal including '/' (AC-8); space in Insert with non-empty buf →
+  InsertChar; Alpha mode all-chars-literal
+- `src/tui/app.rs` — space in Insert transitions to InsertUnit (AC-7); InsertUnit
+  pushes compound unit value on Enter (AC-7); '/' in InsertUnit is literal (AC-8);
+  InsertUnit cancel returns Normal; AlphaSubmit dispatches commands (STORE/RCL)
+- `src/tui/widgets/mode_bar.rs` — Insert → [INSERT], InsertUnit → [INSERT], Alpha → [ALPHA]
 - `src/tui/widgets/input_line.rs` — Insert and Alpha buffers render with cursor
-- `src/tui/widgets/hints_pane.rs` — Insert shows shortcuts, Alpha shows literal hint
+- `src/tui/widgets/hints_pane.rs` — Insert shows shortcuts, InsertUnit shows literal
+  hint (no shortcuts), Alpha shows literal hint
 - `src/input/parser.rs` (inline) — all numeric formats
 - `src/engine/stack.rs` (inline) — push/pop behaviour
 
@@ -70,6 +80,6 @@
   unified to use `height` so label column is consistent across empty and value rows
 
 ## Status
-- **State:** complete
+- **State:** in-progress
 - **Created:** 2026-03-21
-- **Last verified:** 2026-03-24
+- **Last verified:** 2026-03-26
