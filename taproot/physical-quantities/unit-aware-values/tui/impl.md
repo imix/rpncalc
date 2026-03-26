@@ -34,6 +34,7 @@
 - `d63b4cd207f2abf20ac90071dc11bfde503dd4eb` — (auto-linked by taproot link-commits)
 - `af5812435d939342495cbf395806815c79e25bf5` — (auto-linked by taproot link-commits)
 - `cf15106a5bd8413216af6b1e466d3ec79d2e429f` — (auto-linked by taproot link-commits)
+- `82d15137bb9d05f604624da3b8709bbff1639d76` — (auto-linked by taproot link-commits)
 
 ## Tests
 - `src/engine/units.rs` — unit conversion math: weight (oz↔g, lb↔kg), length (ft↔m, in↔cm), temperature (°F↔°C); incompatible category error; unknown unit lookup

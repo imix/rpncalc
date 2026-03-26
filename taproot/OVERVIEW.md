@@ -28,7 +28,7 @@ calculator state.
 - **[execute-chord-operation](./discoverability/execute-chord-operation/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./discoverability/execute-chord-operation/tui/impl.md) `[complete]` (0 commits, 1 test)
 - **[show-last-command](./discoverability/show-last-command/usecase.md)** `[implemented]` — Actor: User (CLI power user)
-  - [tui](./discoverability/show-last-command/tui/impl.md) `[complete]` (2 commits, 2 tests)
+  - [tui](./discoverability/show-last-command/tui/impl.md) `[complete]` (3 commits, 2 tests)
 
 ## [distribution](./distribution/intent.md) `[draft]`
 
@@ -68,7 +68,7 @@ stacked values and control the numeric modes that govern their computation.
 - **[compound-unit-operations](./physical-quantities/compound-unit-operations/usecase.md)** `[implemented]` — Actor: CLI power user (engineer, scientist, or anyone computing with derived physical quantities such as speed, force, or area)
   - [tui](./physical-quantities/compound-unit-operations/tui/impl.md) `[complete]` (2 commits, 3 tests)
 - **[unit-aware-values](./physical-quantities/unit-aware-values/usecase.md)** `[implemented]` — Actor: CLI power user (engineer, scientist, or anyone performing real-world calculations)
-  - [tui](./physical-quantities/unit-aware-values/tui/impl.md) `[complete]` (1 commit, 6 tests)
+  - [tui](./physical-quantities/unit-aware-values/tui/impl.md) `[complete]` (4 commits, 8 tests)
 
 ## [presentation](./presentation/intent.md) `[active]`
 
@@ -88,7 +88,7 @@ medium for RPN computation.
 - **[arrange-stack-values](./stack-management/arrange-stack-values/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./stack-management/arrange-stack-values/tui/impl.md) `[complete]` (2 commits, 2 tests)
 - **[push-value](./stack-management/push-value/usecase.md)** `[implemented]` — Actor: User (CLI power user)
-  - [tui](./stack-management/push-value/tui/impl.md) `[complete]` (2 commits, 7 tests)
+  - [tui](./stack-management/push-value/tui/impl.md) `[complete]` (4 commits, 7 tests)
 - **[roll-to-top](./stack-management/roll-to-top/usecase.md)** `[implemented]` — Actor: User (CLI power user)
   - [tui](./stack-management/roll-to-top/tui/impl.md) `[complete]` (2 commits, 6 tests)
 

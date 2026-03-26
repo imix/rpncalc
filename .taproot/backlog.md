@@ -1,0 +1,1 @@
+- [2026-03-26] a list of aliases from strings like "kph", "N" to the corresponding units km/h or kg m / s2
