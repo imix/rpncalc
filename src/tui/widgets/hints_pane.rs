@@ -8,6 +8,7 @@ use ratatui::{
 
 use crate::engine::base::Base;
 use crate::engine::stack::CalcState;
+use crate::engine::units::UnitCategory;
 use crate::engine::value::CalcValue;
 use crate::input::mode::{AppMode, ChordCategory};
 
@@ -172,24 +173,46 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
     }
 
     if matches!(mode, AppMode::ConvertInput(_)) {
-        let lines = vec![
+        let category = state.stack.last().and_then(|v| {
+            if let CalcValue::Tagged(tv) = v {
+                tv.unit_def().map(|u| u.category)
+            } else {
+                None
+            }
+        });
+        let mut lines = vec![
             Line::styled("CONVERT TO UNIT", dim),
             Line::raw(""),
             Line::raw("Enter  convert"),
             Line::raw("Esc    cancel"),
             Line::raw("Bksp   delete"),
             Line::raw(""),
-            Line::styled("WEIGHT", dim),
-            Line::raw("g  kg  lb  oz"),
-            Line::raw(""),
-            Line::styled("LENGTH", dim),
-            Line::raw("cm  ft  in  km"),
-            Line::raw("m   mi  mm  yd"),
-            Line::raw(""),
-            Line::styled("TEMPERATURE", dim),
-            Line::raw("°C  °F"),
-            Line::styled("also: C  F  degC  degF", dim),
         ];
+        match category {
+            Some(UnitCategory::Weight) | None => {
+                lines.push(Line::styled("WEIGHT", dim));
+                lines.push(Line::raw("g  kg  lb  oz"));
+            }
+            _ => {}
+        }
+        match category {
+            Some(UnitCategory::Length) | None => {
+                if category.is_none() { lines.push(Line::raw("")); }
+                lines.push(Line::styled("LENGTH", dim));
+                lines.push(Line::raw("cm  ft  in  km"));
+                lines.push(Line::raw("m   mi  mm  yd"));
+            }
+            _ => {}
+        }
+        match category {
+            Some(UnitCategory::Temperature) | None => {
+                if category.is_none() { lines.push(Line::raw("")); }
+                lines.push(Line::styled("TEMPERATURE", dim));
+                lines.push(Line::raw("°C  °F"));
+                lines.push(Line::styled("also: C  F  degC  degF", dim));
+            }
+            _ => {}
+        }
         f.render_widget(Paragraph::new(lines), area);
         return;
     }
@@ -199,6 +222,8 @@ pub fn render(f: &mut Frame, area: Rect, mode: &AppMode, state: &CalcState) {
             Line::raw("Enter  push"),
             Line::raw("Esc    cancel"),
             Line::raw("Bksp   delete"),
+            Line::raw(""),
+            Line::styled("append unit: 1.9 oz  6 ft  98.6 F", dim),
             Line::raw(""),
             Line::raw("+  add    -  sub"),
             Line::raw("*  mul    /  div"),
@@ -890,33 +915,56 @@ mod tests {
         assert!(content.contains("delete"), "should show 'delete' action: {:?}", content);
     }
 
-    // AC-23: ConvertInput panel shows WEIGHT group
+    // AC-23: ConvertInput shows only WEIGHT group when top is a weight value
     #[test]
-    fn test_convert_input_mode_shows_weight_group() {
-        let buf = render_hints(AppMode::ConvertInput(String::new()), CalcState::new(), 40, 20);
+    fn test_convert_input_filters_to_weight() {
+        use crate::engine::units::TaggedValue;
+        let mut s = CalcState::new();
+        s.stack.push(CalcValue::Tagged(TaggedValue::new(1.9, "oz")));
+        let buf = render_hints(AppMode::ConvertInput(String::new()), s, 40, 20);
         let content = full_content(&buf);
-        assert!(content.contains("WEIGHT"), "should show WEIGHT group: {:?}", content);
+        assert!(content.contains("WEIGHT"), "should show WEIGHT: {:?}", content);
         assert!(content.contains("oz"), "should show oz: {:?}", content);
-        assert!(content.contains("kg"), "should show kg: {:?}", content);
+        assert!(!content.contains("LENGTH"), "should NOT show LENGTH: {:?}", content);
+        assert!(!content.contains("TEMPERATURE"), "should NOT show TEMPERATURE: {:?}", content);
     }
 
-    // AC-23: ConvertInput panel shows LENGTH group
+    // AC-23: ConvertInput shows only LENGTH group when top is a length value
     #[test]
-    fn test_convert_input_mode_shows_length_group() {
-        let buf = render_hints(AppMode::ConvertInput(String::new()), CalcState::new(), 40, 20);
+    fn test_convert_input_filters_to_length() {
+        use crate::engine::units::TaggedValue;
+        let mut s = CalcState::new();
+        s.stack.push(CalcValue::Tagged(TaggedValue::new(6.0, "ft")));
+        let buf = render_hints(AppMode::ConvertInput(String::new()), s, 40, 20);
         let content = full_content(&buf);
-        assert!(content.contains("LENGTH"), "should show LENGTH group: {:?}", content);
+        assert!(content.contains("LENGTH"), "should show LENGTH: {:?}", content);
         assert!(content.contains("ft"), "should show ft: {:?}", content);
-        assert!(content.contains("km"), "should show km: {:?}", content);
+        assert!(!content.contains("WEIGHT"), "should NOT show WEIGHT: {:?}", content);
+        assert!(!content.contains("TEMPERATURE"), "should NOT show TEMPERATURE: {:?}", content);
     }
 
-    // AC-23: ConvertInput panel shows TEMPERATURE group with aliases
+    // AC-23: ConvertInput shows only TEMPERATURE group when top is a temperature value
     #[test]
-    fn test_convert_input_mode_shows_temperature_group() {
-        let buf = render_hints(AppMode::ConvertInput(String::new()), CalcState::new(), 40, 20);
+    fn test_convert_input_filters_to_temperature() {
+        use crate::engine::units::TaggedValue;
+        let mut s = CalcState::new();
+        s.stack.push(CalcValue::Tagged(TaggedValue::new(98.6, "F")));
+        let buf = render_hints(AppMode::ConvertInput(String::new()), s, 40, 20);
         let content = full_content(&buf);
-        assert!(content.contains("TEMPERATURE"), "should show TEMPERATURE group: {:?}", content);
+        assert!(content.contains("TEMPERATURE"), "should show TEMPERATURE: {:?}", content);
         assert!(content.contains("degC") || content.contains("degF"), "should show aliases: {:?}", content);
+        assert!(!content.contains("WEIGHT"), "should NOT show WEIGHT: {:?}", content);
+        assert!(!content.contains("LENGTH"), "should NOT show LENGTH: {:?}", content);
+    }
+
+    // AC-23: ConvertInput shows all groups when stack is empty (no category context)
+    #[test]
+    fn test_convert_input_shows_all_when_no_context() {
+        let buf = render_hints(AppMode::ConvertInput(String::new()), CalcState::new(), 40, 25);
+        let content = full_content(&buf);
+        assert!(content.contains("WEIGHT"), "should show WEIGHT with no context: {:?}", content);
+        assert!(content.contains("LENGTH"), "should show LENGTH with no context: {:?}", content);
+        assert!(content.contains("TEMPERATURE"), "should show TEMPERATURE with no context: {:?}", content);
     }
 
     // AC-23: ConvertInput panel does NOT show normal mode sections
@@ -966,5 +1014,26 @@ mod tests {
         let buf = render_hints(AppMode::Normal, state_with_depth(1), 40, 25);
         let content = full_content(&buf);
         assert!(!content.contains("UNITS"), "no UNITS section for plain value: {:?}", content);
+    }
+
+    // ── unit-aware-values AC-25: Insert mode unit syntax hint ─────────────────
+
+    // AC-25: Insert mode hints show unit input syntax example
+    #[test]
+    fn test_insert_mode_shows_unit_syntax_hint() {
+        let buf = render_hints(AppMode::Insert(String::new()), CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("oz") || content.contains("ft") || content.contains(" F"),
+            "Insert mode should show unit syntax example: {:?}", content);
+    }
+
+    // AC-25: unit syntax hint is dim/contextual, does not replace op shortcuts
+    #[test]
+    fn test_insert_mode_unit_hint_alongside_ops() {
+        let buf = render_hints(AppMode::Insert(String::new()), CalcState::new(), 40, 15);
+        let content = full_content(&buf);
+        assert!(content.contains("add"), "op shortcuts still present: {:?}", content);
+        assert!(content.contains("oz") || content.contains("ft"),
+            "unit hint also present: {:?}", content);
     }
 }
