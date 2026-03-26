@@ -2,7 +2,10 @@ use crate::engine::angle::AngleMode;
 use crate::engine::constants;
 use crate::engine::error::CalcError;
 use crate::engine::stack::CalcState;
-use crate::engine::units::TaggedValue;
+use crate::engine::units::{
+    atoms_to_display, combine_atoms_mul, convert_tagged_to_unit, derive_display_from_dim,
+    parse_unit_expr_atoms, TaggedValue,
+};
 use crate::engine::value::CalcValue;
 use dashu::float::FBig;
 use dashu::integer::IBig;
@@ -87,10 +90,10 @@ pub fn apply_op(state: &mut CalcState, op: Op) -> Result<(), CalcError> {
         Op::Ceil => tagged_unary_op(state, op, do_ceil),
         Op::Trunc => tagged_unary_op(state, op, do_trunc),
         Op::Sign => tagged_unary_op(state, op, do_sign),
-        // Compound-unit ops: error if tagged
-        Op::Sqrt => tagged_compound_error_unary(state, do_sqrt),
+        // Compound-unit ops: unit-aware dispatch
+        Op::Sqrt => tagged_sqrt_op(state),
         Op::Square => tagged_compound_error_unary(state, do_sq),
-        Op::Reciprocal => tagged_compound_error_unary(state, do_reciprocal),
+        Op::Reciprocal => tagged_reciprocal_op(state),
         Op::Factorial => unary_op(state, do_factorial),
         Op::Not => unary_op(state, do_not),
         // Trig — error if tagged (dimensioned trig is undefined)
@@ -188,8 +191,45 @@ fn unary_op(
 
 // ── Unit-aware dispatch helpers ──────────────────────────────────────────────
 
+/// Extract an FBig amount from a CalcValue without going through f64.
+fn extract_fbig(v: CalcValue) -> FBig {
+    match v {
+        CalcValue::Float(f) => f,
+        CalcValue::Integer(i) => int_to_fbig(&i),
+        CalcValue::Tagged(t) => t.amount,
+    }
+}
+
+/// Derive the display string for a compound unit result of multiplying y_unit × x_unit.
+fn derive_mul_unit_display(y_unit: &str, x_unit: &str) -> String {
+    let y_atoms = parse_unit_expr_atoms(y_unit).unwrap_or_else(|_| vec![]);
+    let x_atoms = parse_unit_expr_atoms(x_unit).unwrap_or_else(|_| vec![]);
+    let result = combine_atoms_mul(&y_atoms, &x_atoms);
+    if result.is_empty() {
+        String::new()
+    } else {
+        atoms_to_display(&result)
+    }
+}
+
+/// Derive the display string for y_unit / x_unit.
+fn derive_div_unit_display(y_unit: &str, x_unit: &str) -> String {
+    let y_atoms = parse_unit_expr_atoms(y_unit).unwrap_or_else(|_| vec![]);
+    let x_neg: Vec<(String, i8)> = parse_unit_expr_atoms(x_unit)
+        .unwrap_or_else(|_| vec![])
+        .into_iter()
+        .map(|(a, e)| (a, -e))
+        .collect();
+    let result = combine_atoms_mul(&y_atoms, &x_neg);
+    if result.is_empty() {
+        String::new()
+    } else {
+        atoms_to_display(&result)
+    }
+}
+
 /// Binary op with unit-aware pre-dispatch.
-/// - Both Tagged: validate compatibility and convert, then apply `f` to plain values.
+/// - Both Tagged: validate/convert compatibility, apply compound unit arithmetic.
 /// - One Tagged + one plain: for Add/Sub → error; for Mul/Div → carry unit.
 /// - Both plain: delegate directly to `f`.
 fn tagged_binary_op(
@@ -206,30 +246,25 @@ fn tagged_binary_op(
 
     match (&y, &x) {
         (CalcValue::Tagged(ty), CalcValue::Tagged(tx)) => {
-            // Both tagged — check category compatibility
-            let unit_x = tx.unit_def().ok_or_else(|| {
-                CalcError::IncompatibleUnits(format!("unknown unit: {}", tx.unit))
-            })?;
-            let unit_y = ty.unit_def().ok_or_else(|| {
-                CalcError::IncompatibleUnits(format!("unknown unit: {}", ty.unit))
-            })?;
+            let ty = ty.clone();
+            let tx = tx.clone();
 
             match op {
                 Op::Add | Op::Sub => {
-                    if unit_x.category != unit_y.category {
+                    // Require identical dimension vectors
+                    if tx.dim != ty.dim {
                         return Err(CalcError::IncompatibleUnits(format!(
-                            "{} and {}",
-                            unit_y.category.name(),
-                            unit_x.category.name()
+                            "incompatible units: {} and {}",
+                            ty.unit, tx.unit
                         )));
                     }
-                    // Convert y to x's unit, operate, result has x's unit
-                    let converted_y = crate::engine::units::convert(ty.amount.clone(), unit_y, unit_x)?;
-                    let plain_y = CalcValue::Float(converted_y);
+                    // Convert y to x's unit scale, then apply the operation
+                    let converted_y_amount = convert_tagged_to_unit(&ty, &tx)?;
+                    let plain_y = CalcValue::Float(converted_y_amount);
                     let plain_x = CalcValue::Float(tx.amount.clone());
                     let plain_result = f(plain_y, plain_x)?;
                     let result = CalcValue::Tagged(TaggedValue {
-                        amount: FBig::try_from(plain_result.to_f64()).unwrap_or(FBig::ZERO),
+                        amount: extract_fbig(plain_result),
                         unit: tx.unit.clone(),
                         dim: tx.dim.clone(),
                     });
@@ -237,31 +272,68 @@ fn tagged_binary_op(
                     state.push(result);
                     Ok(())
                 }
-                Op::Mul => Err(CalcError::IncompatibleUnits(
-                    "compound unit not supported".to_string(),
-                )),
-                Op::Div => {
-                    if unit_x.category != unit_y.category {
-                        return Err(CalcError::IncompatibleUnits(
-                            "compound unit not supported".to_string(),
-                        ));
+                Op::Mul => {
+                    // Compound multiplication: amounts multiply, dims add
+                    let result_dim = ty.dim.add(&tx.dim);
+                    let result_amount = ty.amount.clone() * tx.amount.clone();
+
+                    if result_dim.is_dimensionless() {
+                        state.stack.truncate(n - 2);
+                        state.push(CalcValue::Float(result_amount));
+                        Ok(())
+                    } else {
+                        let result_unit = derive_mul_unit_display(&ty.unit, &tx.unit);
+                        let result_unit = if result_unit.is_empty() {
+                            derive_display_from_dim(&result_dim)
+                        } else {
+                            result_unit
+                        };
+                        let result = CalcValue::Tagged(TaggedValue {
+                            amount: result_amount,
+                            unit: result_unit,
+                            dim: result_dim,
+                        });
+                        state.stack.truncate(n - 2);
+                        state.push(result);
+                        Ok(())
                     }
-                    // Same-category division: convert y to x's unit, divide → dimensionless
-                    let converted_y = crate::engine::units::convert(ty.amount.clone(), unit_y, unit_x)?;
-                    let plain_y = CalcValue::Float(converted_y);
-                    let plain_x = CalcValue::Float(tx.amount.clone());
-                    let result = f(plain_y, plain_x)?;
-                    state.stack.truncate(n - 2);
-                    state.push(result);
-                    Ok(())
+                }
+                Op::Div => {
+                    let result_dim = ty.dim.sub(&tx.dim);
+
+                    if result_dim.is_dimensionless() {
+                        // Same dimension: convert y to x's scale then divide
+                        let converted_y = convert_tagged_to_unit(&ty, &tx)?;
+                        let result = f(
+                            CalcValue::Float(converted_y),
+                            CalcValue::Float(tx.amount.clone()),
+                        )?;
+                        state.stack.truncate(n - 2);
+                        state.push(result);
+                        Ok(())
+                    } else {
+                        // Different dimensions: compound division
+                        let result_amount = ty.amount.clone() / tx.amount.clone();
+                        let result_unit = derive_div_unit_display(&ty.unit, &tx.unit);
+                        let result_unit = if result_unit.is_empty() {
+                            derive_display_from_dim(&result_dim)
+                        } else {
+                            result_unit
+                        };
+                        let result = CalcValue::Tagged(TaggedValue {
+                            amount: result_amount,
+                            unit: result_unit,
+                            dim: result_dim,
+                        });
+                        state.stack.truncate(n - 2);
+                        state.push(result);
+                        Ok(())
+                    }
                 }
                 Op::Pow | Op::Mod | Op::Round => Err(CalcError::IncompatibleUnits(
-                    "compound unit not supported".to_string(),
+                    "operation not supported on unit-tagged values".to_string(),
                 )),
-                _ => {
-                    // Bitwise etc — not expected here but fall through
-                    binary_op(state, f)
-                }
+                _ => binary_op(state, f),
             }
         }
 
@@ -286,7 +358,7 @@ fn tagged_binary_op(
                     };
                     let plain_result = f(a_arg, b_arg)?;
                     let result = CalcValue::Tagged(TaggedValue {
-                        amount: FBig::try_from(plain_result.to_f64()).unwrap_or(FBig::ZERO),
+                        amount: extract_fbig(plain_result),
                         unit: tagged.unit.clone(),
                         dim: tagged.dim.clone(),
                     });
@@ -298,10 +370,13 @@ fn tagged_binary_op(
                     match (&y, &x) {
                         (CalcValue::Tagged(ty), _) => {
                             // tagged(y) / plain(x) → result has tagged's unit
-                            let plain_y = CalcValue::Float(ty.amount.clone());
-                            let plain_result = f(plain_y, x.clone())?;
+                            let ty = ty.clone();
+                            let plain_result = f(
+                                CalcValue::Float(ty.amount.clone()),
+                                x.clone(),
+                            )?;
                             let result = CalcValue::Tagged(TaggedValue {
-                                amount: FBig::try_from(plain_result.to_f64()).unwrap_or(FBig::ZERO),
+                                amount: extract_fbig(plain_result),
                                 unit: ty.unit.clone(),
                                 dim: ty.dim.clone(),
                             });
@@ -309,22 +384,138 @@ fn tagged_binary_op(
                             state.push(result);
                             Ok(())
                         }
-                        (_, CalcValue::Tagged(_)) => {
-                            // plain(y) / tagged(x) → compound unit, not supported
-                            Err(CalcError::IncompatibleUnits(
-                                "compound unit not supported".to_string(),
-                            ))
+                        (_, CalcValue::Tagged(tx)) => {
+                            // plain(y) / tagged(x) → compound result: dim = {0} - tx.dim = negated
+                            let tx = tx.clone();
+                            let result_dim = tx.dim.negate();
+                            let result_amount = f(y.clone(), CalcValue::Float(tx.amount.clone()))?;
+                            let result_unit = {
+                                let neg_atoms: Vec<(String, i8)> =
+                                    parse_unit_expr_atoms(&tx.unit)
+                                        .unwrap_or_else(|_| vec![])
+                                        .into_iter()
+                                        .map(|(a, e)| (a, -e))
+                                        .collect();
+                                if neg_atoms.is_empty() {
+                                    derive_display_from_dim(&result_dim)
+                                } else {
+                                    atoms_to_display(&neg_atoms)
+                                }
+                            };
+                            let result = CalcValue::Tagged(TaggedValue {
+                                amount: extract_fbig(result_amount),
+                                unit: result_unit,
+                                dim: result_dim,
+                            });
+                            state.stack.truncate(n - 2);
+                            state.push(result);
+                            Ok(())
                         }
                         _ => unreachable!(),
                     }
                 }
                 _ => Err(CalcError::IncompatibleUnits(
-                    "compound unit not supported".to_string(),
+                    "operation not supported on unit-tagged values".to_string(),
                 )),
             }
         }
 
         _ => binary_op(state, f),
+    }
+}
+
+/// Unary sqrt with compound-unit support.
+/// - Dimensionless or integer/float: apply sqrt normally.
+/// - Tagged with all-even exponents: halve dims, derive unit display.
+/// - Tagged with odd exponent: error `non-integer unit exponent after sqrt`.
+fn tagged_sqrt_op(state: &mut CalcState) -> Result<(), CalcError> {
+    let top = state.peek().ok_or(CalcError::StackUnderflow)?.clone();
+    match top {
+        CalcValue::Tagged(t) => {
+            let new_dim = t.dim.halve().ok_or_else(|| {
+                CalcError::IncompatibleUnits("non-integer unit exponent after sqrt".to_string())
+            })?;
+            let val = t.amount.to_f64().value();
+            if val < 0.0 {
+                return Err(CalcError::DomainError(
+                    "sqrt requires non-negative number".to_string(),
+                ));
+            }
+            let new_amount = FBig::try_from(val.sqrt()).unwrap_or(FBig::ZERO);
+            let new_unit = if new_dim.is_dimensionless() {
+                String::new()
+            } else {
+                // Derive display: halve atom exponents if all even, else fall back to dim
+                match parse_unit_expr_atoms(&t.unit) {
+                    Ok(atoms) if atoms.iter().all(|(_, e)| e % 2 == 0) => {
+                        let halved: Vec<(String, i8)> = atoms
+                            .into_iter()
+                            .map(|(a, e)| (a, e / 2))
+                            .filter(|(_, e)| *e != 0)
+                            .collect();
+                        atoms_to_display(&halved)
+                    }
+                    _ => derive_display_from_dim(&new_dim),
+                }
+            };
+            if new_dim.is_dimensionless() {
+                state.pop().expect("SAFETY: peeked above");
+                state.push(CalcValue::Float(new_amount));
+            } else {
+                let result = CalcValue::Tagged(TaggedValue {
+                    amount: new_amount,
+                    unit: new_unit,
+                    dim: new_dim,
+                });
+                state.pop().expect("SAFETY: peeked above");
+                state.push(result);
+            }
+            Ok(())
+        }
+        _ => unary_op(state, do_sqrt),
+    }
+}
+
+/// Unary reciprocal (1/x) with compound-unit support.
+/// - Plain values: compute 1/x normally.
+/// - Tagged: negate all dimension exponents, compute 1/amount, derive new unit display.
+fn tagged_reciprocal_op(state: &mut CalcState) -> Result<(), CalcError> {
+    let top = state.peek().ok_or(CalcError::StackUnderflow)?.clone();
+    match top {
+        CalcValue::Tagged(t) => {
+            let val = t.amount.to_f64().value();
+            if val == 0.0 {
+                return Err(CalcError::DivisionByZero);
+            }
+            let new_amount = FBig::try_from(1.0 / val).unwrap_or(FBig::ZERO);
+            let new_dim = t.dim.negate();
+            let new_unit = if new_dim.is_dimensionless() {
+                String::new()
+            } else {
+                match parse_unit_expr_atoms(&t.unit) {
+                    Ok(atoms) => {
+                        let negated: Vec<(String, i8)> =
+                            atoms.into_iter().map(|(a, e)| (a, -e)).collect();
+                        atoms_to_display(&negated)
+                    }
+                    _ => derive_display_from_dim(&new_dim),
+                }
+            };
+            if new_dim.is_dimensionless() {
+                state.pop().expect("SAFETY: peeked above");
+                state.push(CalcValue::Float(new_amount));
+            } else {
+                let result = CalcValue::Tagged(TaggedValue {
+                    amount: new_amount,
+                    unit: new_unit,
+                    dim: new_dim,
+                });
+                state.pop().expect("SAFETY: peeked above");
+                state.push(result);
+            }
+            Ok(())
+        }
+        _ => unary_op(state, do_reciprocal),
     }
 }
 
@@ -1441,5 +1632,201 @@ mod tests {
         let err = apply_op(&mut s, Op::Round).unwrap_err();
         assert!(matches!(err, CalcError::NotAnInteger));
         assert_eq!(s.depth(), 2); // stack unchanged
+    }
+
+    // ── Compound unit operations ──────────────────────────────────────────────
+
+    fn tagged(amount: f64, unit: &str) -> CalcValue {
+        CalcValue::Tagged(crate::engine::units::TaggedValue::new(amount, unit))
+    }
+
+    fn compound_tagged(amount: f64, unit: &str, dim: crate::engine::units::DimensionVector) -> CalcValue {
+        CalcValue::Tagged(crate::engine::units::TaggedValue::new_compound(
+            dashu::float::FBig::try_from(amount).unwrap(),
+            unit.to_string(),
+            dim,
+        ))
+    }
+
+    fn speed_dim() -> crate::engine::units::DimensionVector {
+        crate::engine::units::DimensionVector { m: 1, s: -1, ..Default::default() }
+    }
+    fn accel_dim() -> crate::engine::units::DimensionVector {
+        crate::engine::units::DimensionVector { m: 1, s: -2, ..Default::default() }
+    }
+    fn area_dim() -> crate::engine::units::DimensionVector {
+        crate::engine::units::DimensionVector { m: 2, ..Default::default() }
+    }
+
+    // AC-3: Derive speed by dividing distance by time
+    #[test]
+    fn test_compound_div_speed() {
+        let mut s = CalcState::new();
+        s.push(tagged(100.0, "km")); // y: 100 km
+        s.push(tagged(2.0, "h"));   // x: 2 h
+        apply_op(&mut s, Op::Div).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "km/h");
+                assert!((tv.amount.to_f64().value() - 50.0).abs() < 1e-6,
+                    "100km / 2h = {}", tv.amount.to_f64().value());
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
+    }
+
+    // AC-4: speed × time → distance (dimension cancellation)
+    #[test]
+    fn test_compound_mul_cancellation() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(50.0, "km/h", speed_dim())); // y: 50 km/h
+        s.push(tagged(2.0, "h"));  // x: 2 h
+        apply_op(&mut s, Op::Mul).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "km");
+                assert!((tv.amount.to_f64().value() - 100.0).abs() < 1e-6,
+                    "50 km/h * 2 h = {}", tv.amount.to_f64().value());
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
+    }
+
+    // AC-5: area from two length values
+    #[test]
+    fn test_compound_mul_area() {
+        let mut s = CalcState::new();
+        s.push(tagged(5.0, "m"));
+        s.push(tagged(3.0, "m"));
+        apply_op(&mut s, Op::Mul).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "m2");
+                assert!((tv.amount.to_f64().value() - 15.0).abs() < 1e-9);
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
+    }
+
+    // AC-6: force from mass × acceleration
+    #[test]
+    fn test_compound_mul_force() {
+        let mut s = CalcState::new();
+        s.push(tagged(80.0, "kg")); // y: 80 kg
+        s.push(compound_tagged(9.8, "m/s2", accel_dim())); // x: 9.8 m/s2
+        apply_op(&mut s, Op::Mul).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "kg*m/s2");
+                assert!((tv.amount.to_f64().value() - 784.0).abs() < 0.01,
+                    "80 kg * 9.8 m/s2 = {}", tv.amount.to_f64().value());
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
+    }
+
+    // AC-7: dimensionless result from same-compound-unit division
+    #[test]
+    fn test_compound_div_dimensionless() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(10.0, "m/s", speed_dim())); // y
+        s.push(compound_tagged(5.0, "m/s", speed_dim()));  // x
+        apply_op(&mut s, Op::Div).unwrap();
+        assert_eq!(s.depth(), 1);
+        let result = s.peek().unwrap();
+        assert!(!matches!(result, CalcValue::Tagged(_)), "expected plain number, got Tagged");
+        assert!((result.to_f64() - 2.0).abs() < 1e-9);
+    }
+
+    // AC-8: scalar × compound unit preserves unit
+    #[test]
+    fn test_compound_mul_scalar() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(9.8, "m/s2", accel_dim())); // y: 9.8 m/s2
+        s.push(float(2.0)); // x: 2 (plain)
+        apply_op(&mut s, Op::Mul).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "m/s2");
+                assert!((tv.amount.to_f64().value() - 19.6).abs() < 1e-6);
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
+    }
+
+    // AC-9: sqrt reduces even-exponent compound unit
+    #[test]
+    fn test_compound_sqrt_area() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(25.0, "m2", area_dim()));
+        apply_op(&mut s, Op::Sqrt).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "m");
+                assert!((tv.amount.to_f64().value() - 5.0).abs() < 1e-6);
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
+    }
+
+    // AC-10: sqrt on odd-exponent compound unit → error
+    #[test]
+    fn test_compound_sqrt_odd_error() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(4.0, "m/s", speed_dim()));
+        let err = apply_op(&mut s, Op::Sqrt).unwrap_err();
+        assert!(matches!(&err, CalcError::IncompatibleUnits(e) if e.contains("non-integer")),
+            "got: {:?}", err);
+        assert_eq!(s.depth(), 1); // stack unchanged
+    }
+
+    // AC-11: incompatible compound units in addition → error
+    #[test]
+    fn test_compound_add_incompatible() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(1.0, "m/s", speed_dim()));
+        s.push(compound_tagged(1.0, "m/s2", accel_dim()));
+        let err = apply_op(&mut s, Op::Add).unwrap_err();
+        assert!(matches!(err, CalcError::IncompatibleUnits(_)));
+        assert_eq!(s.depth(), 2); // stack unchanged
+    }
+
+    // AC-15: add two same-compound-unit values
+    #[test]
+    fn test_compound_add_same_unit() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(1.0, "m/s", speed_dim()));
+        s.push(compound_tagged(2.0, "m/s", speed_dim()));
+        apply_op(&mut s, Op::Add).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "m/s");
+                assert!((tv.amount.to_f64().value() - 3.0).abs() < 1e-9);
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
+    }
+
+    // AC-16: reciprocal of a compound-unit value
+    #[test]
+    fn test_compound_reciprocal() {
+        let mut s = CalcState::new();
+        s.push(compound_tagged(4.0, "m/s2", accel_dim()));
+        apply_op(&mut s, Op::Reciprocal).unwrap();
+        assert_eq!(s.depth(), 1);
+        match s.peek().unwrap() {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "s2/m");
+                assert!((tv.amount.to_f64().value() - 0.25).abs() < 1e-9);
+            }
+            v => panic!("expected Tagged, got {:?}", v),
+        }
     }
 }

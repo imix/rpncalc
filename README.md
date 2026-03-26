@@ -261,6 +261,17 @@ Type a number followed by a unit abbreviation (space optional), then press `Ente
 6 ft        → pushes 6 ft
 ```
 
+Compound units (built from two or more base units) are entered the same way:
+
+```
+9.8 m/s2    → pushes 9.8 m/s² (acceleration)
+100 km/h    → pushes 100 km/h (speed)
+80 kg*m/s2  → pushes 80 kg·m/s² (force)
+25 m2       → pushes 25 m² (area)
+```
+
+**Input grammar:** `<numerator>/<denominator>`, where each part contains unit atoms joined by `*` or space. Exponents are plain ASCII digits (`m2`, `s2`, not `m²`). Both `*` and space are accepted as numerator separators.
+
 ### Supported units
 
 | Category | Units |
@@ -275,9 +286,13 @@ Type a number followed by a unit abbreviation (space optional), then press `Ente
 Press `U` in Normal mode, type the target unit, then `Enter`:
 
 ```
-1.9 oz  → stack: [1.9 oz]
-U       → enter Unit mode
-g Enter → converts to 53.864 g
+1.9 oz   → stack: [1.9 oz]
+U        → enter Unit mode
+g Enter  → converts to 53.864 g
+
+27.78 m/s → stack: [27.78 m/s]
+U         → enter Unit mode
+km/h      → converts to 100 km/h
 ```
 
 Or use Alpha mode with `in <unit>`:
@@ -289,7 +304,7 @@ in g Enter  → converts position 1 to grams
 
 ### Arithmetic with tagged values
 
-Operations between two values of the **same category** auto-convert position 2 into position 1's unit before operating:
+Operations between two values of the **same unit** (or same dimension) auto-convert position 2 into position 1's unit before operating:
 
 ```
 1 kg        → stack: [1 kg]
@@ -305,12 +320,61 @@ Multiplying or dividing a tagged value by a plain number preserves the unit:
 *           → result: 12 ft
 ```
 
-Dividing two values of the same category yields a dimensionless ratio:
+Dividing two values of the same dimension yields a dimensionless ratio:
 
 ```
 6 ft        → stack: [6 ft]
 2 ft        → stack: [6 ft, 2 ft]
 /           → result: 3  (dimensionless)
+```
+
+**Compound unit arithmetic** — multiplying or dividing values with different dimensions produces a compound result:
+
+```
+100 km      → stack: [100 km]
+2 h         → stack: [100 km, 2 h]
+/           → result: 50 km/h
+
+5 m         → stack: [5 m]
+3 m         → stack: [5 m, 3 m]
+*           → result: 15 m2
+
+80 kg       → stack: [80 kg]
+9.8 m/s2    → stack: [80 kg, 9.8 m/s2]
+*           → result: 784 kg*m/s2
+
+50 km/h     → stack: [50 km/h]
+2 h         → stack: [50 km/h, 2 h]
+*           → result: 100 km  (h cancels)
+```
+
+`√` (square root) halves all dimension exponents — error if any exponent is odd:
+
+```
+25 m2       → stack: [25 m2]
+w           → result: 5 m
+
+4 m/s       → stack: [4 m/s]
+w           → error: non-integer unit exponent after sqrt
+```
+
+`1/x` (reciprocal) negates all dimension exponents:
+
+```
+4 m/s2      → stack: [4 m/s2]
+fr          → result: 0.25 s2/m
+```
+
+Adding or subtracting compound-unit values requires identical dimensions:
+
+```
+1 m/s       → stack: [1 m/s]
+2 m/s       → stack: [1 m/s, 2 m/s]
++           → result: 3 m/s
+
+1 m/s       → stack: [1 m/s]
+1 m/s2      → stack: [1 m/s, 1 m/s2]
++           → error: incompatible units
 ```
 
 Temperature arithmetic (°C and °F are not additive — only conversion is meaningful):

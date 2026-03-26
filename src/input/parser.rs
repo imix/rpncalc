@@ -1,4 +1,4 @@
-use crate::engine::units::{lookup_unit, TaggedValue};
+use crate::engine::units::{atoms_to_dim, atoms_to_display, lookup_unit, parse_unit_expr_atoms, TaggedValue};
 use crate::engine::value::CalcValue;
 use crate::engine::CalcError;
 use dashu::float::round::mode::Zero;
@@ -22,33 +22,111 @@ fn unit_abbrevs_sorted() -> &'static Vec<&'static str> {
     })
 }
 
-/// Try to parse a unit-tagged value from input like "1.9 oz", "1.9oz", "98.6F", "-1.9 kg".
+/// Try to parse a unit-tagged value from input like "1.9 oz", "1.9oz", "98.6F", "-1.9 kg",
+/// "9.8 m/s2", "100 km/h", "80kg".
 /// Returns Ok(Some(CalcValue::Tagged(...))) on success, Ok(None) if no unit found.
 fn try_parse_tagged(input: &str) -> Result<Option<CalcValue>, CalcError> {
     let trimmed = input.trim();
+
+    // 1. Try simple unit suffix matching (existing logic).
     for abbrev in unit_abbrevs_sorted() {
-        // Try with space separator: "1.9 oz"
-        let with_space = format!(" {}", abbrev);
-        if let Some(num_part) = trimmed.strip_suffix(abbrev) {
+        if let Some(num_part) = trimmed.strip_suffix(*abbrev) {
             let num_str = num_part.trim_end();
             if num_str.is_empty() {
                 continue;
             }
-            // Verify num_str parses as a number
             if let Ok(base_val) = parse_number_only(num_str) {
-                let unit_abbrev = abbrev;
-                // Check unit is known
-                if lookup_unit(unit_abbrev).is_none() {
-                    // abbrev is in our hardcoded list, should always be found
+                if lookup_unit(abbrev).is_none() {
                     continue;
                 }
-                let tagged = TaggedValue::new(base_val.to_f64(), *unit_abbrev);
+                let tagged = TaggedValue::new(base_val.to_f64(), *abbrev);
                 return Ok(Some(CalcValue::Tagged(tagged)));
             }
         }
-        let _ = with_space; // suppress unused warning
     }
+
+    // 2. Try compound unit parsing: split input into number + unit expression.
+    if let Some((num_str, unit_expr)) = split_number_unit(trimmed) {
+        // Only attempt compound parsing if the unit expression contains /,  *,
+        // or digits after letters (e.g. "m2").
+        let looks_compound = unit_expr.contains('/')
+            || unit_expr.contains('*')
+            || unit_expr.chars().any(|c| c.is_ascii_digit());
+        if looks_compound {
+            match parse_unit_expr_atoms(unit_expr) {
+                Ok(atoms) if !atoms.is_empty() => {
+                    if let Ok(base_val) = parse_decimal_exact(num_str) {
+                        let dim = atoms_to_dim(&atoms);
+                        let display = atoms_to_display(&atoms);
+                        let tv = TaggedValue::new_compound(base_val, display, dim);
+                        return Ok(Some(CalcValue::Tagged(tv)));
+                    }
+                }
+                Err(CalcError::InvalidInput(e)) if e.starts_with("unknown unit:") => {
+                    // Propagate unknown-unit errors rather than silently falling through
+                    return Err(CalcError::InvalidInput(e));
+                }
+                _ => {} // malformed expression — fall through to number-only parse
+            }
+        }
+    }
+
     Ok(None)
+}
+
+/// Split input into a leading number string and a trailing unit expression.
+/// Returns `Some((num_str, unit_str))` if the split is unambiguous, otherwise `None`.
+fn split_number_unit(s: &str) -> Option<(&str, &str)> {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+    // Optional leading minus
+    if i < bytes.len() && bytes[i] == b'-' {
+        i += 1;
+    }
+    // Must have at least one digit
+    if i >= bytes.len() || !bytes[i].is_ascii_digit() {
+        return None;
+    }
+    while i < bytes.len() && bytes[i].is_ascii_digit() {
+        i += 1;
+    }
+    // Optional decimal part
+    if i < bytes.len() && bytes[i] == b'.' {
+        i += 1;
+        while i < bytes.len() && bytes[i].is_ascii_digit() {
+            i += 1;
+        }
+    }
+    // Optional scientific notation
+    if i < bytes.len() && (bytes[i] == b'e' || bytes[i] == b'E') {
+        let saved = i;
+        i += 1;
+        if i < bytes.len() && (bytes[i] == b'+' || bytes[i] == b'-') {
+            i += 1;
+        }
+        if i < bytes.len() && bytes[i].is_ascii_digit() {
+            while i < bytes.len() && bytes[i].is_ascii_digit() {
+                i += 1;
+            }
+        } else {
+            i = saved; // not scientific notation — backtrack
+        }
+    }
+    let num_end = i;
+    // Skip optional whitespace between number and unit
+    while i < bytes.len() && bytes[i] == b' ' {
+        i += 1;
+    }
+    let unit_start = i;
+    if unit_start >= bytes.len() {
+        return None; // no unit part
+    }
+    // Unit part must start with a letter or '°'
+    let first_unit_char = s[unit_start..].chars().next()?;
+    if !first_unit_char.is_alphabetic() && first_unit_char != '°' {
+        return None;
+    }
+    Some((&s[..num_end], &s[unit_start..]))
 }
 
 /// Parse a pure number (no unit) from a string. Returns CalcValue::Integer or Float.
@@ -344,6 +422,80 @@ mod tests {
             parse_value("0b2"),
             Err(CalcError::InvalidInput(_))
         ));
+    }
+
+    // ── compound unit parsing ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_compound_speed() {
+        // AC-1: "100 km/h" parses as a tagged value with unit "km/h"
+        let result = parse_value("100 km/h").unwrap();
+        match result {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "km/h");
+                assert!((tv.amount.to_f64().value() - 100.0).abs() < 1e-9);
+            }
+            _ => panic!("expected Tagged, got {:?}", result),
+        }
+    }
+
+    #[test]
+    fn test_parse_compound_acceleration() {
+        // AC-2: "9.8 m/s2" parses as tagged with unit "m/s2"
+        let result = parse_value("9.8 m/s2").unwrap();
+        match result {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "m/s2");
+                assert!((tv.amount.to_f64().value() - 9.8).abs() < 1e-6);
+            }
+            _ => panic!("expected Tagged"),
+        }
+    }
+
+    #[test]
+    fn test_parse_compound_area() {
+        // "25 m2" parses as tagged with unit "m2"
+        let result = parse_value("25 m2").unwrap();
+        match result {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "m2");
+                assert!((tv.amount.to_f64().value() - 25.0).abs() < 1e-9);
+            }
+            _ => panic!("expected Tagged"),
+        }
+    }
+
+    #[test]
+    fn test_parse_compound_no_space() {
+        // "100km/h" (no space) parses as tagged with unit "km/h"
+        let result = parse_value("100km/h").unwrap();
+        match result {
+            CalcValue::Tagged(tv) => assert_eq!(tv.unit, "km/h"),
+            _ => panic!("expected Tagged"),
+        }
+    }
+
+    #[test]
+    fn test_parse_unknown_unit_error() {
+        // AC-12: "9.8 m/fathom2" should error with "unknown unit: fathom"
+        let result = parse_value("9.8 m/fathom2");
+        assert!(
+            matches!(&result, Err(CalcError::InvalidInput(e)) if e.contains("unknown unit: fathom")),
+            "got: {:?}", result
+        );
+    }
+
+    #[test]
+    fn test_parse_compound_force() {
+        // "80 kg*m/s2"
+        let result = parse_value("80 kg*m/s2").unwrap();
+        match result {
+            CalcValue::Tagged(tv) => {
+                assert_eq!(tv.unit, "kg*m/s2");
+                assert!((tv.amount.to_f64().value() - 80.0).abs() < 1e-9);
+            }
+            _ => panic!("expected Tagged"),
+        }
     }
 
     // ── precision regression ─────────────────────────────────────────────────

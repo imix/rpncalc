@@ -35,6 +35,9 @@
 - condition: numeric-types | note: no new CalcValue variant introduced; compound-unit TaggedValues use the existing `amount: FBig` field unchanged; `TaggedValue::new_compound` takes a pre-parsed FBig (no f64 routing); display via existing `format_fbig`; serde round-trip unchanged (unit is a String, dim is DimensionVector from compound-unit-model) — not affected | resolved: 2026-03-26
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-26
 - **Last verified:** 2026-03-26
+
+## DoD Resolutions
+- condition: document-current | note: README.md updated: added compound unit input grammar, compound arithmetic examples (multiplication, division, sqrt, reciprocal, same-compound-unit addition), compound unit conversion example (m/s → km/h). No new key bindings or modes — compound units reuse existing arithmetic operators. | resolved: 2026-03-26T09:09:36.672Z

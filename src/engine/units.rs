@@ -189,6 +189,246 @@ pub fn lookup_unit(abbrev: &str) -> Option<&'static Unit> {
     UNITS.iter().find(|u| u.abbrev == abbrev)
 }
 
+// ── Compound unit helpers ─────────────────────────────────────────────────────
+
+/// Parse a single unit atom: `<abbrev>[<exponent>]`.
+/// Abbrev is the leading alphabetic (and `°`) characters.
+/// Exponent is trailing signed integer digits (default 1).
+/// Temperature units are rejected in compound expressions.
+fn parse_unit_atom(s: &str) -> Result<(String, i8), CalcError> {
+    if s.is_empty() {
+        return Err(CalcError::InvalidInput("empty unit atom".to_string()));
+    }
+    let chars: Vec<char> = s.chars().collect();
+    // Abbrev: leading letters and '°'
+    let mut abbrev_end = 0;
+    while abbrev_end < chars.len() && (chars[abbrev_end].is_alphabetic() || chars[abbrev_end] == '°') {
+        abbrev_end += 1;
+    }
+    if abbrev_end == 0 {
+        return Err(CalcError::InvalidInput(format!("invalid unit atom: {}", s)));
+    }
+    let abbrev: String = chars[..abbrev_end].iter().collect();
+    let exp_str: String = chars[abbrev_end..].iter().collect();
+    let exp: i8 = if exp_str.is_empty() {
+        1
+    } else {
+        exp_str.parse::<i8>().map_err(|_| {
+            CalcError::InvalidInput(format!("invalid exponent in unit atom: {}", s))
+        })?
+    };
+    let unit = lookup_unit(&abbrev).ok_or_else(|| {
+        CalcError::InvalidInput(format!("unknown unit: {}", abbrev))
+    })?;
+    if unit.category == UnitCategory::Temperature {
+        return Err(CalcError::InvalidInput(format!(
+            "temperature unit {} cannot be used in compound expressions",
+            abbrev
+        )));
+    }
+    Ok((abbrev, exp))
+}
+
+/// Split an atom string by `*` or whitespace.
+fn split_atom_tokens(s: &str) -> Vec<String> {
+    s.replace('*', " ")
+        .split_whitespace()
+        .map(|a| a.to_string())
+        .collect()
+}
+
+/// Merge atom into list, adding exponents for matching abbrevs.
+fn add_atom_to_list(atoms: &mut Vec<(String, i8)>, abbrev: String, exp: i8) {
+    if let Some(existing) = atoms.iter_mut().find(|(a, _)| *a == abbrev) {
+        existing.1 += exp;
+    } else {
+        atoms.push((abbrev, exp));
+    }
+}
+
+/// Parse a compound unit expression into a list of (abbrev, signed-exponent) pairs.
+/// Grammar: `<numerator> [ "/" <denominator> ]`
+/// Each part is split on `*` / whitespace for atoms: `<abbrev>[<exponent>]`.
+pub fn parse_unit_expr_atoms(expr: &str) -> Result<Vec<(String, i8)>, CalcError> {
+    let expr = expr.trim();
+    if expr.is_empty() {
+        return Err(CalcError::InvalidInput("empty unit expression".to_string()));
+    }
+    let slash_pos = expr.find('/');
+    let (num_str, den_str) = match slash_pos {
+        None => (expr, None),
+        Some(pos) => {
+            let den = &expr[pos + 1..];
+            if den.is_empty() {
+                return Err(CalcError::InvalidInput(format!("invalid unit expression: {}", expr)));
+            }
+            // Reject double-slash
+            if den.contains('/') {
+                return Err(CalcError::InvalidInput(format!("invalid unit expression: {}", expr)));
+            }
+            (&expr[..pos], Some(den))
+        }
+    };
+
+    let mut atoms: Vec<(String, i8)> = Vec::new();
+
+    for token in split_atom_tokens(num_str) {
+        let (abbrev, exp) = parse_unit_atom(&token)?;
+        if exp != 0 {
+            add_atom_to_list(&mut atoms, abbrev, exp);
+        }
+    }
+
+    if let Some(den) = den_str {
+        for token in split_atom_tokens(den) {
+            let (abbrev, exp) = parse_unit_atom(&token)?;
+            if exp != 0 {
+                add_atom_to_list(&mut atoms, abbrev, -exp);
+            }
+        }
+    }
+
+    // Drop any that cancelled to zero
+    atoms.retain(|(_, e)| *e != 0);
+    Ok(atoms)
+}
+
+/// Compute the DimensionVector from a list of (abbrev, exponent) atoms.
+pub fn atoms_to_dim(atoms: &[(String, i8)]) -> DimensionVector {
+    let mut dim = DimensionVector::default();
+    for (abbrev, exp) in atoms {
+        let exp = *exp;
+        if let Some(unit) = lookup_unit(abbrev) {
+            dim.kg += unit.dim.kg * exp;
+            dim.m += unit.dim.m * exp;
+            dim.s += unit.dim.s * exp;
+            dim.a += unit.dim.a * exp;
+            dim.k += unit.dim.k * exp;
+            dim.mol += unit.dim.mol * exp;
+            dim.cd += unit.dim.cd * exp;
+        }
+    }
+    dim
+}
+
+/// Format a list of atoms as a display string.
+/// Positive exponents → numerator joined by `*`.
+/// Negative exponents → denominator joined by `*` with absolute exponents.
+pub fn atoms_to_display(atoms: &[(String, i8)]) -> String {
+    let mut num_parts: Vec<String> = Vec::new();
+    let mut den_parts: Vec<String> = Vec::new();
+
+    for (abbrev, exp) in atoms.iter().filter(|(_, e)| *e != 0) {
+        let exp = *exp;
+        if exp > 0 {
+            if exp == 1 {
+                num_parts.push(abbrev.clone());
+            } else {
+                num_parts.push(format!("{}{}", abbrev, exp));
+            }
+        } else {
+            let abs_exp = (-exp) as u8;
+            if abs_exp == 1 {
+                den_parts.push(abbrev.clone());
+            } else {
+                den_parts.push(format!("{}{}", abbrev, abs_exp));
+            }
+        }
+    }
+
+    match (num_parts.is_empty(), den_parts.is_empty()) {
+        (true, true) => String::new(),
+        (false, true) => num_parts.join("*"),
+        (true, false) => format!("1/{}", den_parts.join("*")),
+        (false, false) => format!("{}/{}", num_parts.join("*"), den_parts.join("*")),
+    }
+}
+
+/// Combine two atom lists for multiplication (add exponents, drop zeros).
+pub fn combine_atoms_mul(a: &[(String, i8)], b: &[(String, i8)]) -> Vec<(String, i8)> {
+    let mut result: Vec<(String, i8)> = a.to_vec();
+    for (abbrev, exp) in b {
+        add_atom_to_list(&mut result, abbrev.clone(), *exp);
+    }
+    result.retain(|(_, e)| *e != 0);
+    result
+}
+
+/// Raise a scale factor FBig to an i8 exponent (small integers only, practical range ±8).
+fn fbig_pow_i8(base: FBig, exp: i8) -> FBig {
+    if exp == 0 {
+        return fbig_int(1);
+    }
+    let abs = exp.unsigned_abs() as usize;
+    let mut result = base.clone();
+    for _ in 1..abs {
+        result = result * base.clone();
+    }
+    if exp < 0 {
+        fbig_int(1) / result
+    } else {
+        result
+    }
+}
+
+/// Compute the SI scale factor for a compound unit expression.
+/// E.g., atoms `[("km", 1), ("h", -1)]` → `1000 / 3600`.
+pub fn compound_to_si_scale(atoms: &[(String, i8)]) -> Result<FBig, CalcError> {
+    let mut scale = fbig_int(1);
+    for (abbrev, exp) in atoms {
+        let exp = *exp;
+        let unit = lookup_unit(abbrev).ok_or_else(|| {
+            CalcError::InvalidInput(format!("unknown unit: {}", abbrev))
+        })?;
+        let to_base_str = unit.to_base.ok_or_else(|| {
+            CalcError::IncompatibleUnits(format!("{} has no linear conversion", abbrev))
+        })?;
+        let unit_scale = parse_scale(to_base_str);
+        scale = scale * fbig_pow_i8(unit_scale, exp);
+    }
+    Ok(scale)
+}
+
+
+/// Fallback unit display derived from a DimensionVector, using SI base abbreviations.
+pub fn derive_display_from_dim(dim: &DimensionVector) -> String {
+    let mut atoms: Vec<(String, i8)> = Vec::new();
+    if dim.kg != 0 { atoms.push(("kg".to_string(), dim.kg)); }
+    if dim.m != 0 { atoms.push(("m".to_string(), dim.m)); }
+    if dim.s != 0 { atoms.push(("s".to_string(), dim.s)); }
+    if dim.mol != 0 { atoms.push(("mol".to_string(), dim.mol)); }
+    atoms_to_display(&atoms)
+}
+
+/// Convert `from`'s amount into `to`'s unit scale.
+/// Handles both simple (category-based) and compound units.
+pub fn convert_tagged_to_unit(from: &TaggedValue, to: &TaggedValue) -> Result<FBig, CalcError> {
+    if from.unit == to.unit {
+        return Ok(from.amount.clone());
+    }
+    if from.dim != to.dim {
+        return Err(CalcError::IncompatibleUnits(format!(
+            "incompatible units: {} and {}", from.unit, to.unit
+        )));
+    }
+    // Try simple unit conversion
+    match (lookup_unit(&from.unit), lookup_unit(&to.unit)) {
+        (Some(from_unit), Some(to_unit)) => {
+            convert(from.amount.clone(), from_unit, to_unit)
+        }
+        _ => {
+            // Compound conversion via SI scale factors
+            let from_atoms = parse_unit_expr_atoms(&from.unit)
+                .map_err(|_| CalcError::IncompatibleUnits(format!("unknown unit: {}", from.unit)))?;
+            let to_atoms = parse_unit_expr_atoms(&to.unit)
+                .map_err(|_| CalcError::IncompatibleUnits(format!("unknown unit: {}", to.unit)))?;
+            let from_scale = compound_to_si_scale(&from_atoms)?;
+            let to_scale = compound_to_si_scale(&to_atoms)?;
+            Ok(from.amount.clone() * from_scale / to_scale)
+        }
+    }
+}
+
 /// Canonical display abbreviation for a given abbreviation string.
 /// Returns `abbrev` unchanged if not found.
 pub fn canonical_display(abbrev: &str) -> &str {
@@ -240,6 +480,11 @@ pub struct TaggedValue {
 }
 
 impl TaggedValue {
+    /// Create a compound-unit TaggedValue with a pre-parsed FBig amount and atom-derived metadata.
+    pub fn new_compound(amount: FBig, unit: String, dim: DimensionVector) -> Self {
+        Self { amount, unit, dim }
+    }
+
     pub fn new(amount: f64, unit: impl Into<String>) -> Self {
         let unit_str = unit.into();
         // Normalise alias to canonical display string
@@ -259,21 +504,48 @@ impl TaggedValue {
         lookup_unit(&self.unit)
     }
 
-    /// Convert this tagged value to a different unit abbreviation.
+    /// Convert this tagged value to a different unit abbreviation or compound unit expression.
     pub fn convert_to(&self, target_abbrev: &str) -> Result<TaggedValue, CalcError> {
-        let from = self.unit_def().ok_or_else(|| {
-            CalcError::IncompatibleUnits(format!("unknown unit: {}", self.unit))
-        })?;
         let target_display = canonical_display(target_abbrev);
-        let to = lookup_unit(target_display).ok_or_else(|| {
-            CalcError::InvalidInput(format!("unknown unit: {}", target_abbrev))
-        })?;
-        let converted = convert(self.amount.clone(), from, to)?;
-        Ok(TaggedValue {
-            amount: converted,
-            unit: target_display.to_string(),
-            dim: to.dim.clone(),
-        })
+        let to_simple = lookup_unit(target_display);
+        let from_simple = self.unit_def();
+
+        match (from_simple, to_simple) {
+            (Some(from), Some(to)) => {
+                // Both simple units — use existing convert()
+                let converted = convert(self.amount.clone(), from, to)?;
+                Ok(TaggedValue {
+                    amount: converted,
+                    unit: target_display.to_string(),
+                    dim: to.dim.clone(),
+                })
+            }
+            _ => {
+                // At least one is compound — parse both as atom lists
+                let from_atoms = parse_unit_expr_atoms(&self.unit)
+                    .map_err(|_| CalcError::IncompatibleUnits(format!("unknown unit: {}", self.unit)))?;
+                let to_atoms = parse_unit_expr_atoms(target_abbrev)
+                    .or_else(|_| parse_unit_expr_atoms(target_display))
+                    .map_err(|_| CalcError::InvalidInput(format!("unknown unit: {}", target_abbrev)))?;
+
+                let from_dim = atoms_to_dim(&from_atoms);
+                let to_dim = atoms_to_dim(&to_atoms);
+                if from_dim != to_dim {
+                    return Err(CalcError::IncompatibleUnits(format!(
+                        "cannot convert {} to {}", self.unit, target_abbrev
+                    )));
+                }
+                let from_scale = compound_to_si_scale(&from_atoms)?;
+                let to_scale = compound_to_si_scale(&to_atoms)?;
+                let converted = self.amount.clone() * from_scale / to_scale;
+                let to_display = atoms_to_display(&to_atoms);
+                Ok(TaggedValue {
+                    amount: converted,
+                    unit: to_display,
+                    dim: to_dim,
+                })
+            }
+        }
     }
 
     pub fn display(&self) -> String {
@@ -605,5 +877,149 @@ mod tests {
         // sqrt of speed {m:1, s:-1} → None (odd exponent)
         let speed = DimensionVector { m: 1, s: -1, ..Default::default() };
         assert_eq!(speed.halve(), None);
+    }
+
+    // ── compound unit atom parsing ────────────────────────────────────────────
+
+    #[test]
+    fn test_parse_unit_expr_atoms_simple() {
+        let atoms = parse_unit_expr_atoms("m").unwrap();
+        assert_eq!(atoms, vec![("m".to_string(), 1i8)]);
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_speed() {
+        let atoms = parse_unit_expr_atoms("m/s").unwrap();
+        assert_eq!(atoms, vec![("m".to_string(), 1i8), ("s".to_string(), -1i8)]);
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_acceleration() {
+        let atoms = parse_unit_expr_atoms("m/s2").unwrap();
+        assert_eq!(atoms, vec![("m".to_string(), 1i8), ("s".to_string(), -2i8)]);
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_force() {
+        let atoms = parse_unit_expr_atoms("kg*m/s2").unwrap();
+        assert!(atoms.contains(&("kg".to_string(), 1i8)));
+        assert!(atoms.contains(&("m".to_string(), 1i8)));
+        assert!(atoms.contains(&("s".to_string(), -2i8)));
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_area() {
+        let atoms = parse_unit_expr_atoms("m2").unwrap();
+        assert_eq!(atoms, vec![("m".to_string(), 2i8)]);
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_speed_with_space() {
+        // space as numerator separator: "kg m/s2"
+        let atoms = parse_unit_expr_atoms("kg m/s2").unwrap();
+        assert!(atoms.contains(&("kg".to_string(), 1i8)));
+        assert!(atoms.contains(&("m".to_string(), 1i8)));
+        assert!(atoms.contains(&("s".to_string(), -2i8)));
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_unknown_unit() {
+        let result = parse_unit_expr_atoms("m/fathom2");
+        assert!(matches!(result, Err(CalcError::InvalidInput(e)) if e.contains("unknown unit: fathom")));
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_temperature_rejected() {
+        assert!(parse_unit_expr_atoms("m/°C").is_err());
+        assert!(parse_unit_expr_atoms("F/s").is_err());
+    }
+
+    #[test]
+    fn test_parse_unit_expr_atoms_double_slash() {
+        assert!(parse_unit_expr_atoms("m//s").is_err());
+    }
+
+    #[test]
+    fn test_atoms_to_dim_speed() {
+        let atoms = parse_unit_expr_atoms("km/h").unwrap();
+        let dim = atoms_to_dim(&atoms);
+        assert_eq!(dim, DimensionVector { m: 1, s: -1, ..Default::default() });
+    }
+
+    #[test]
+    fn test_atoms_to_display_speed() {
+        let atoms = parse_unit_expr_atoms("km/h").unwrap();
+        assert_eq!(atoms_to_display(&atoms), "km/h");
+    }
+
+    #[test]
+    fn test_atoms_to_display_area() {
+        let atoms = parse_unit_expr_atoms("m2").unwrap();
+        assert_eq!(atoms_to_display(&atoms), "m2");
+    }
+
+    #[test]
+    fn test_atoms_to_display_force() {
+        let atoms = vec![
+            ("kg".to_string(), 1i8),
+            ("m".to_string(), 1i8),
+            ("s".to_string(), -2i8),
+        ];
+        assert_eq!(atoms_to_display(&atoms), "kg*m/s2");
+    }
+
+    #[test]
+    fn test_combine_atoms_mul_cancellation() {
+        // km/h * h = km
+        let y = parse_unit_expr_atoms("km/h").unwrap();
+        let x = parse_unit_expr_atoms("h").unwrap();
+        let result = combine_atoms_mul(&y, &x);
+        assert_eq!(result, vec![("km".to_string(), 1i8)]);
+        assert_eq!(atoms_to_display(&result), "km");
+    }
+
+    #[test]
+    fn test_combine_atoms_mul_area() {
+        // m * m = m2
+        let y = parse_unit_expr_atoms("m").unwrap();
+        let x = parse_unit_expr_atoms("m").unwrap();
+        let result = combine_atoms_mul(&y, &x);
+        assert_eq!(result, vec![("m".to_string(), 2i8)]);
+    }
+
+    #[test]
+    fn test_compound_to_si_scale_speed() {
+        // km/h → 1000/3600 m/s
+        let atoms = parse_unit_expr_atoms("km/h").unwrap();
+        let scale = compound_to_si_scale(&atoms).unwrap();
+        let expected = 1000.0_f64 / 3600.0;
+        assert!((scale.to_f64().value() - expected).abs() < 1e-9,
+            "km/h scale = {}", scale.to_f64().value());
+    }
+
+    // ── AC-14: compound unit conversion ──────────────────────────────────────
+
+    #[test]
+    fn test_convert_tagged_compound_ms_to_kmh() {
+        // 27.78 m/s → km/h ≈ 100
+        let tv = TaggedValue {
+            amount: FBig::try_from(27.78_f64).unwrap(),
+            unit: "m/s".to_string(),
+            dim: DimensionVector { m: 1, s: -1, ..Default::default() },
+        };
+        let converted = tv.convert_to("km/h").unwrap();
+        assert_eq!(converted.unit, "km/h");
+        assert!((converted.amount.to_f64().value() - 100.0).abs() < 0.1,
+            "27.78 m/s in km/h = {}", converted.amount.to_f64().value());
+    }
+
+    #[test]
+    fn test_convert_tagged_compound_incompatible() {
+        let tv = TaggedValue {
+            amount: FBig::try_from(1.0_f64).unwrap(),
+            unit: "m/s".to_string(),
+            dim: DimensionVector { m: 1, s: -1, ..Default::default() },
+        };
+        assert!(matches!(tv.convert_to("kg"), Err(CalcError::IncompatibleUnits(_))));
     }
 }
