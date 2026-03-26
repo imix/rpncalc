@@ -140,7 +140,6 @@ pub fn command_label(mode: &AppMode, event: KeyEvent) -> Option<String> {
             KeyCode::Char('%') => Some(format!("% → {}", op_name(Op::Mod))),
             KeyCode::Char('!') => Some(format!("! → {}", op_name(Op::Factorial))),
             KeyCode::Char('s') => Some(format!("s → {}", op_name(Op::Swap))),
-            KeyCode::Char('d') => Some(format!("d → {}", op_name(Op::Drop))),
             KeyCode::Char('p') => Some(format!("p → {}", op_name(Op::Dup))),
             KeyCode::Char('R') => Some(format!("R → {}", op_name(Op::Rotate))),
             KeyCode::Char('n') => Some(format!("n → {}", op_name(Op::Negate))),
@@ -1255,6 +1254,13 @@ mod tests {
     fn test_command_label_enter_store_mode_none() {
         let label = command_label(&AppMode::Normal, key(KeyCode::Char('S')));
         assert_eq!(label, None, "EnterStoreMode should not update label");
+    }
+
+    // d in Normal → Noop, so command_label must return None (not "d → drop")
+    #[test]
+    fn test_command_label_d_normal_none() {
+        let label = command_label(&AppMode::Normal, key(KeyCode::Char('d')));
+        assert_eq!(label, None, "d is Noop in Normal mode and must not update the label");
     }
 
     // Chord leader key (r in Normal) does not return a label

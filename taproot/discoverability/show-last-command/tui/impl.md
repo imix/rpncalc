@@ -24,13 +24,16 @@
 - `7a1689f409e942137ba429983ca2c561dd0f01fa` — (auto-linked by taproot link-commits)
 
 ## Tests
-- `src/input/handler.rs` — `command_label` tests: AC-2 (chord two-key label), AC-3 (label returned regardless of stack depth), AC-4 (navigation returns None), AC-7 (InsertSubmitThen returns label), AC-11 (EnterStoreMode returns None)
+- `src/input/handler.rs` — `command_label` tests: AC-2 (chord two-key label), AC-3 (label returned regardless of stack depth), AC-4 (navigation returns None), AC-7 (InsertSubmitThen returns label), AC-11 (EnterStoreMode returns None); `test_command_label_d_normal_none` (d is Noop in Normal — must not produce a label)
 - `src/tui/widgets/mode_bar.rs` — mode bar render tests: AC-1 (single op label), AC-2 (chord label rendered), AC-5 (undo label), AC-6 (blank on session start), AC-8 (mode/settings not displaced by label), AC-9 (yank label), AC-10 (mode-change chord label), overflow truncation (label omitted when too narrow)
 
 ## Status
 - **State:** complete
 - **Created:** 2026-03-25
-- **Last verified:** 2026-03-25
+- **Last verified:** 2026-03-26
 
 ## Notes
 None
+
+## DoD Resolutions
+- condition: document-current | note: Bug fix only: removed phantom 'd → drop' label from command_label Normal arm. The 'd' key was already removed from all README key reference tables in a prior commit; the show-last-command status-bar feature is not separately documented in README. No user-visible behaviour description, key binding, or configuration option was added or changed — nothing to update. | resolved: 2026-03-26T11:52:31.746Z
