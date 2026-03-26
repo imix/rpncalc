@@ -267,6 +267,7 @@ Type a number followed by a unit abbreviation (space optional), then press `Ente
 |----------|-------|
 | Weight | `oz`, `lb`, `g`, `kg` |
 | Length | `mm`, `cm`, `m`, `km`, `in`, `ft`, `yd`, `mi` |
+| Time | `s`, `min`, `h` |
 | Temperature | `°C`, `°F` (aliases: `C`, `F`, `degC`, `degF`) |
 
 ### Converting units

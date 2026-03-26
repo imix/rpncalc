@@ -231,6 +231,7 @@ fn tagged_binary_op(
                     let result = CalcValue::Tagged(TaggedValue {
                         amount: FBig::try_from(plain_result.to_f64()).unwrap_or(FBig::ZERO),
                         unit: tx.unit.clone(),
+                        dim: tx.dim.clone(),
                     });
                     state.stack.truncate(n - 2);
                     state.push(result);
@@ -287,6 +288,7 @@ fn tagged_binary_op(
                     let result = CalcValue::Tagged(TaggedValue {
                         amount: FBig::try_from(plain_result.to_f64()).unwrap_or(FBig::ZERO),
                         unit: tagged.unit.clone(),
+                        dim: tagged.dim.clone(),
                     });
                     state.stack.truncate(n - 2);
                     state.push(result);
@@ -301,6 +303,7 @@ fn tagged_binary_op(
                             let result = CalcValue::Tagged(TaggedValue {
                                 amount: FBig::try_from(plain_result.to_f64()).unwrap_or(FBig::ZERO),
                                 unit: ty.unit.clone(),
+                                dim: ty.dim.clone(),
                             });
                             state.stack.truncate(n - 2);
                             state.push(result);
@@ -344,6 +347,7 @@ fn tagged_unary_op(
                 _ => CalcValue::Tagged(TaggedValue {
                     amount: FBig::try_from(plain_result.to_f64()).unwrap_or(FBig::ZERO),
                     unit,
+                    dim: t.dim.clone(),
                 }),
             };
             state.pop().expect("SAFETY: peeked above");

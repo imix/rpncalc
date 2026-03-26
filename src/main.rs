@@ -71,6 +71,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             app.state = state;
         }
         Ok(None) => { /* no session file — start fresh, no message */ }
+        Err(msg) if msg == "unit format updated" => {
+            app.error_message = Some("session reset — unit format updated".into());
+        }
         Err(msg) => {
             app.error_message = Some(format!("Session file corrupted; starting fresh: {}", msg));
         }

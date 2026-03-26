@@ -30,6 +30,9 @@
 - condition: numeric-types | note: DimensionVector uses i8 (dimensional metadata, not a numeric amount on the stack); no new CalcValue variant introduced; TaggedValue.amount remains FBig unchanged — not affected | resolved: 2026-03-26
 
 ## Status
-- **State:** in-progress
+- **State:** complete
 - **Created:** 2026-03-26
 - **Last verified:** 2026-03-26
+
+## DoD Resolutions
+- condition: document-current | note: README Supported Units table updated with Time row (s, min, h). No new key bindings, modes, or configuration options. Session migration message ('session reset — unit format updated') is a one-time upgrade notification, not a documented user feature. | resolved: 2026-03-26T08:43:55.362Z

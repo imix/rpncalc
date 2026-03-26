@@ -1,9 +1,30 @@
 use crate::config::config::Config;
 use crate::engine::stack::CalcState;
+use crate::engine::units::lookup_unit;
+use crate::engine::value::CalcValue;
 use std::{
     fs, io,
     path::{Path, PathBuf},
 };
+
+/// Returns true if the loaded state contains any TaggedValue whose dim field is
+/// all-zeros (old format default) but whose unit abbreviation maps to a non-zero
+/// dim in the current registry. This detects sessions saved before the
+/// compound-unit-model refactor.
+fn has_old_format_tagged_values(state: &CalcState) -> bool {
+    let check = |val: &CalcValue| -> bool {
+        if let CalcValue::Tagged(t) = val {
+            if t.dim.is_dimensionless() {
+                if let Some(unit) = lookup_unit(&t.unit) {
+                    return !unit.dim.is_dimensionless();
+                }
+            }
+        }
+        false
+    };
+    state.stack.iter().any(check)
+        || state.registers.values().any(check)
+}
 
 pub fn session_path() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(".rpnpad").join("session.json"))
@@ -26,15 +47,20 @@ pub(crate) fn save_to_path(
 
 /// Core load — testable with injected path.
 /// Returns Ok(None) if file not found, Err(msg) if corrupt or IO error.
+/// Returns Err("unit format updated") if the session contains old-format
+/// TaggedValues (pre-compound-unit-model) — caller should show migration message.
 pub(crate) fn load_from_path(path: &Path) -> Result<Option<CalcState>, String> {
     let data = match fs::read_to_string(path) {
         Ok(d) => d,
         Err(e) if e.kind() == io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(format!("IO error reading session: {}", e)),
     };
-    serde_json::from_str(&data)
-        .map(Some)
-        .map_err(|e| format!("Session file corrupt: {}", e))
+    let state: CalcState = serde_json::from_str(&data)
+        .map_err(|e| format!("Session file corrupt: {}", e))?;
+    if has_old_format_tagged_values(&state) {
+        return Err("unit format updated".to_string());
+    }
+    Ok(Some(state))
 }
 
 /// Save session to ~/.rpnpad/session.json using atomic write.
@@ -115,6 +141,57 @@ mod tests {
         save_to_path(&path, &state).unwrap();
         assert!(path.exists());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ── AC-4: old session format migration ───────────────────────────────────
+
+    #[test]
+    fn test_old_format_session_migration() {
+        // Build an old-format session by serialising a real TaggedValue and
+        // stripping the "dim" field — simulates a session saved before the
+        // compound-unit-model refactor added DimensionVector.
+        use crate::engine::units::TaggedValue;
+        let mut state = CalcState::new();
+        state.stack.push(CalcValue::Tagged(TaggedValue::new(1.9, "oz")));
+        let new_json = serde_json::to_string(&state).unwrap();
+        // Strip "dim" from every Tagged entry to produce old-format JSON.
+        let mut state_val: serde_json::Value = serde_json::from_str(&new_json).unwrap();
+        if let Some(stack) = state_val["stack"].as_array_mut() {
+            for item in stack.iter_mut() {
+                if let Some(tagged) = item["Tagged"].as_object_mut() {
+                    tagged.remove("dim");
+                }
+            }
+        }
+        let old_json = serde_json::to_string(&state_val).unwrap();
+
+        let path = std::env::temp_dir().join("rpnpad_old_format_migration_test.json");
+        std::fs::write(&path, &old_json).unwrap();
+        let result = load_from_path(&path);
+        let _ = std::fs::remove_file(&path);
+        assert!(
+            matches!(result, Err(ref e) if e == "unit format updated"),
+            "expected 'unit format updated' error, got {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_new_format_session_loads_normally() {
+        use crate::engine::units::TaggedValue;
+        let dir = std::env::temp_dir();
+        let path = dir.join("rpnpad_new_format_session_test.json");
+        let _ = std::fs::remove_file(&path);
+
+        let mut state = CalcState::new();
+        state
+            .stack
+            .push(CalcValue::Tagged(TaggedValue::new(1.9, "oz")));
+        save_to_path(&path, &state).unwrap();
+
+        let loaded = load_from_path(&path).unwrap();
+        let _ = std::fs::remove_file(&path);
+        assert!(loaded.is_some(), "new format session should load successfully");
     }
 
     #[test]

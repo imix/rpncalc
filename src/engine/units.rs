@@ -3,11 +3,104 @@ use dashu::float::{round::mode::Zero, Context, FBig};
 use dashu::integer::IBig;
 use serde::{Deserialize, Serialize};
 
+/// Dimension vector: signed integer exponents for the seven SI base dimensions.
+/// All-zeros represents a dimensionless value.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DimensionVector {
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub kg: i8, // mass
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub m: i8, // length
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub s: i8, // time
+    #[serde(default, skip_serializing_if = "is_zero", rename = "A")]
+    pub a: i8, // electric current
+    #[serde(default, skip_serializing_if = "is_zero", rename = "K")]
+    pub k: i8, // thermodynamic temperature
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub mol: i8, // amount of substance
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub cd: i8, // luminous intensity
+}
+
+fn is_zero(n: &i8) -> bool {
+    *n == 0
+}
+
+impl DimensionVector {
+    pub fn is_dimensionless(&self) -> bool {
+        *self == Self::default()
+    }
+
+    /// Add dimension exponents — used for multiplication.
+    pub fn add(&self, other: &Self) -> Self {
+        Self {
+            kg: self.kg + other.kg,
+            m: self.m + other.m,
+            s: self.s + other.s,
+            a: self.a + other.a,
+            k: self.k + other.k,
+            mol: self.mol + other.mol,
+            cd: self.cd + other.cd,
+        }
+    }
+
+    /// Subtract dimension exponents — used for division.
+    pub fn sub(&self, other: &Self) -> Self {
+        Self {
+            kg: self.kg - other.kg,
+            m: self.m - other.m,
+            s: self.s - other.s,
+            a: self.a - other.a,
+            k: self.k - other.k,
+            mol: self.mol - other.mol,
+            cd: self.cd - other.cd,
+        }
+    }
+
+    /// Negate all exponents — used for reciprocal (1/x).
+    pub fn negate(&self) -> Self {
+        Self {
+            kg: -self.kg,
+            m: -self.m,
+            s: -self.s,
+            a: -self.a,
+            k: -self.k,
+            mol: -self.mol,
+            cd: -self.cd,
+        }
+    }
+
+    /// Halve all exponents — used for sqrt. Returns `None` if any exponent is odd.
+    pub fn halve(&self) -> Option<Self> {
+        if self.kg % 2 != 0
+            || self.m % 2 != 0
+            || self.s % 2 != 0
+            || self.a % 2 != 0
+            || self.k % 2 != 0
+            || self.mol % 2 != 0
+            || self.cd % 2 != 0
+        {
+            return None;
+        }
+        Some(Self {
+            kg: self.kg / 2,
+            m: self.m / 2,
+            s: self.s / 2,
+            a: self.a / 2,
+            k: self.k / 2,
+            mol: self.mol / 2,
+            cd: self.cd / 2,
+        })
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnitCategory {
     Weight,
     Length,
     Temperature,
+    Time,
 }
 
 impl UnitCategory {
@@ -16,6 +109,7 @@ impl UnitCategory {
             UnitCategory::Weight => "weight",
             UnitCategory::Length => "length",
             UnitCategory::Temperature => "temperature",
+            UnitCategory::Time => "time",
         }
     }
 }
@@ -29,33 +123,39 @@ pub struct Unit {
     pub category: UnitCategory,
     /// Scale factor to base unit as exact decimal string. None for temperature (affine).
     pub to_base: Option<&'static str>,
+    /// SI dimension vector for this unit.
+    pub dim: DimensionVector,
 }
 
 /// All recognised units. Aliases (e.g. "F" for "°F") have the same
 /// display as their canonical form but a different abbrev.
 static UNITS: &[Unit] = &[
     // ── Weight (base: kg) ────────────────────────────────────────────────────
-    Unit { abbrev: "oz",  display: "oz",  category: UnitCategory::Weight, to_base: Some("0.028349523125") },
-    Unit { abbrev: "lb",  display: "lb",  category: UnitCategory::Weight, to_base: Some("0.45359237") },
-    Unit { abbrev: "g",   display: "g",   category: UnitCategory::Weight, to_base: Some("0.001") },
-    Unit { abbrev: "kg",  display: "kg",  category: UnitCategory::Weight, to_base: Some("1") },
+    Unit { abbrev: "oz",  display: "oz",  category: UnitCategory::Weight,      to_base: Some("0.028349523125"), dim: DimensionVector { kg: 1, m: 0, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "lb",  display: "lb",  category: UnitCategory::Weight,      to_base: Some("0.45359237"),     dim: DimensionVector { kg: 1, m: 0, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "g",   display: "g",   category: UnitCategory::Weight,      to_base: Some("0.001"),          dim: DimensionVector { kg: 1, m: 0, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "kg",  display: "kg",  category: UnitCategory::Weight,      to_base: Some("1"),              dim: DimensionVector { kg: 1, m: 0, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
     // ── Length (base: m) ─────────────────────────────────────────────────────
-    Unit { abbrev: "mm",  display: "mm",  category: UnitCategory::Length, to_base: Some("0.001") },
-    Unit { abbrev: "cm",  display: "cm",  category: UnitCategory::Length, to_base: Some("0.01") },
-    Unit { abbrev: "m",   display: "m",   category: UnitCategory::Length, to_base: Some("1") },
-    Unit { abbrev: "km",  display: "km",  category: UnitCategory::Length, to_base: Some("1000") },
-    Unit { abbrev: "in",  display: "in",  category: UnitCategory::Length, to_base: Some("0.0254") },
-    Unit { abbrev: "ft",  display: "ft",  category: UnitCategory::Length, to_base: Some("0.3048") },
-    Unit { abbrev: "yd",  display: "yd",  category: UnitCategory::Length, to_base: Some("0.9144") },
-    Unit { abbrev: "mi",  display: "mi",  category: UnitCategory::Length, to_base: Some("1609.344") },
+    Unit { abbrev: "mm",  display: "mm",  category: UnitCategory::Length,      to_base: Some("0.001"),          dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "cm",  display: "cm",  category: UnitCategory::Length,      to_base: Some("0.01"),           dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "m",   display: "m",   category: UnitCategory::Length,      to_base: Some("1"),              dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "km",  display: "km",  category: UnitCategory::Length,      to_base: Some("1000"),           dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "in",  display: "in",  category: UnitCategory::Length,      to_base: Some("0.0254"),         dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "ft",  display: "ft",  category: UnitCategory::Length,      to_base: Some("0.3048"),         dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "yd",  display: "yd",  category: UnitCategory::Length,      to_base: Some("0.9144"),         dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "mi",  display: "mi",  category: UnitCategory::Length,      to_base: Some("1609.344"),       dim: DimensionVector { kg: 0, m: 1, s: 0, a: 0, k: 0, mol: 0, cd: 0 } },
+    // ── Time (base: s) ───────────────────────────────────────────────────────
+    Unit { abbrev: "s",   display: "s",   category: UnitCategory::Time,        to_base: Some("1"),              dim: DimensionVector { kg: 0, m: 0, s: 1, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "min", display: "min", category: UnitCategory::Time,        to_base: Some("60"),             dim: DimensionVector { kg: 0, m: 0, s: 1, a: 0, k: 0, mol: 0, cd: 0 } },
+    Unit { abbrev: "h",   display: "h",   category: UnitCategory::Time,        to_base: Some("3600"),           dim: DimensionVector { kg: 0, m: 0, s: 1, a: 0, k: 0, mol: 0, cd: 0 } },
     // ── Temperature (affine) ─────────────────────────────────────────────────
-    Unit { abbrev: "°F",   display: "°F",  category: UnitCategory::Temperature, to_base: None },
-    Unit { abbrev: "°C",   display: "°C",  category: UnitCategory::Temperature, to_base: None },
+    Unit { abbrev: "°F",  display: "°F",  category: UnitCategory::Temperature, to_base: None,                   dim: DimensionVector { kg: 0, m: 0, s: 0, a: 0, k: 1, mol: 0, cd: 0 } },
+    Unit { abbrev: "°C",  display: "°C",  category: UnitCategory::Temperature, to_base: None,                   dim: DimensionVector { kg: 0, m: 0, s: 0, a: 0, k: 1, mol: 0, cd: 0 } },
     // ASCII aliases — same display as canonical but typable without special chars
-    Unit { abbrev: "F",   display: "°F",  category: UnitCategory::Temperature, to_base: None },
-    Unit { abbrev: "C",   display: "°C",  category: UnitCategory::Temperature, to_base: None },
-    Unit { abbrev: "degF",display: "°F",  category: UnitCategory::Temperature, to_base: None },
-    Unit { abbrev: "degC",display: "°C",  category: UnitCategory::Temperature, to_base: None },
+    Unit { abbrev: "F",   display: "°F",  category: UnitCategory::Temperature, to_base: None,                   dim: DimensionVector { kg: 0, m: 0, s: 0, a: 0, k: 1, mol: 0, cd: 0 } },
+    Unit { abbrev: "C",   display: "°C",  category: UnitCategory::Temperature, to_base: None,                   dim: DimensionVector { kg: 0, m: 0, s: 0, a: 0, k: 1, mol: 0, cd: 0 } },
+    Unit { abbrev: "degF",display: "°F",  category: UnitCategory::Temperature, to_base: None,                   dim: DimensionVector { kg: 0, m: 0, s: 0, a: 0, k: 1, mol: 0, cd: 0 } },
+    Unit { abbrev: "degC",display: "°C",  category: UnitCategory::Temperature, to_base: None,                   dim: DimensionVector { kg: 0, m: 0, s: 0, a: 0, k: 1, mol: 0, cd: 0 } },
 ];
 
 /// Parse an exact decimal string (e.g. "0.3048") to FBig at 128-bit precision,
@@ -133,6 +233,10 @@ pub struct TaggedValue {
     pub amount: FBig,
     /// Unit abbreviation (e.g. "oz", "°F"). Canonical display is looked up via `canonical_display()`.
     pub unit: String,
+    /// SI dimension vector. Populated from the unit registry; used for arithmetic type-checking.
+    /// `#[serde(default)]` allows old session files (no `dim` field) to deserialise without error.
+    #[serde(default)]
+    pub dim: DimensionVector,
 }
 
 impl TaggedValue {
@@ -140,9 +244,13 @@ impl TaggedValue {
         let unit_str = unit.into();
         // Normalise alias to canonical display string
         let display = canonical_display(&unit_str).to_string();
+        let dim = lookup_unit(&display)
+            .map(|u| u.dim.clone())
+            .unwrap_or_default();
         Self {
             amount: FBig::try_from(amount).unwrap_or(FBig::ZERO),
             unit: display,
+            dim,
         }
     }
 
@@ -161,7 +269,11 @@ impl TaggedValue {
             CalcError::InvalidInput(format!("unknown unit: {}", target_abbrev))
         })?;
         let converted = convert(self.amount.clone(), from, to)?;
-        Ok(TaggedValue { amount: converted, unit: target_display.to_string() })
+        Ok(TaggedValue {
+            amount: converted,
+            unit: target_display.to_string(),
+            dim: to.dim.clone(),
+        })
     }
 
     pub fn display(&self) -> String {
@@ -406,5 +518,92 @@ mod tests {
         let json = serde_json::to_string(&t).expect("serialize");
         let restored: TaggedValue = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(t, restored);
+    }
+
+    // ── AC-2: unit registry SI dimensions ───────────────────────────────────
+
+    #[test]
+    fn test_registry_si_dimensions() {
+        let mass_dim = DimensionVector { kg: 1, ..Default::default() };
+        let len_dim = DimensionVector { m: 1, ..Default::default() };
+        let temp_dim = DimensionVector { k: 1, ..Default::default() };
+        let time_dim = DimensionVector { s: 1, ..Default::default() };
+
+        for abbrev in &["oz", "lb", "g", "kg"] {
+            let u = lookup_unit(abbrev).unwrap_or_else(|| panic!("unit {} not found", abbrev));
+            assert_eq!(u.dim, mass_dim, "{} should have mass dim", abbrev);
+        }
+        for abbrev in &["mm", "cm", "m", "km", "ft", "in", "yd", "mi"] {
+            let u = lookup_unit(abbrev).unwrap_or_else(|| panic!("unit {} not found", abbrev));
+            assert_eq!(u.dim, len_dim, "{} should have length dim", abbrev);
+        }
+        for abbrev in &["°F", "°C"] {
+            let u = lookup_unit(abbrev).unwrap_or_else(|| panic!("unit {} not found", abbrev));
+            assert_eq!(u.dim, temp_dim, "{} should have temperature dim", abbrev);
+        }
+        let s_unit = lookup_unit("s").expect("s not found");
+        assert_eq!(s_unit.dim, time_dim);
+    }
+
+    // ── AC-3: TaggedValue serde round-trip preserves dim ────────────────────
+
+    #[test]
+    fn test_tagged_value_dim_serde_roundtrip() {
+        // Simulate a compound dim (m:1, s:-1) that compound-unit-operations will produce.
+        let t = TaggedValue {
+            amount: fbig(27.78),
+            unit: "m/s".to_string(),
+            dim: DimensionVector { m: 1, s: -1, ..Default::default() },
+        };
+        let json = serde_json::to_string(&t).expect("serialize");
+        let restored: TaggedValue = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(restored.dim, t.dim);
+        assert_eq!(restored.unit, "m/s");
+    }
+
+    #[test]
+    fn test_tagged_value_new_populates_dim() {
+        let oz = TaggedValue::new(1.9, "oz");
+        assert_eq!(oz.dim, DimensionVector { kg: 1, ..Default::default() });
+
+        let ft = TaggedValue::new(6.0, "ft");
+        assert_eq!(ft.dim, DimensionVector { m: 1, ..Default::default() });
+
+        let f = TaggedValue::new(98.6, "F");
+        assert_eq!(f.dim, DimensionVector { k: 1, ..Default::default() });
+    }
+
+    #[test]
+    fn test_convert_to_preserves_dim() {
+        let oz = TaggedValue::new(1.9, "oz");
+        let g = oz.convert_to("g").unwrap();
+        assert_eq!(g.dim, DimensionVector { kg: 1, ..Default::default() });
+    }
+
+    // ── DimensionVector arithmetic ───────────────────────────────────────────
+
+    #[test]
+    fn test_dimension_vector_arithmetic() {
+        let mass = DimensionVector { kg: 1, ..Default::default() };
+        let accel = DimensionVector { m: 1, s: -2, ..Default::default() };
+
+        // force = mass × acceleration: {kg:1} + {m:1, s:-2} = {kg:1, m:1, s:-2}
+        let force = mass.add(&accel);
+        assert_eq!(force, DimensionVector { kg: 1, m: 1, s: -2, ..Default::default() });
+
+        // dimensionless from same-unit division
+        assert!(mass.sub(&mass).is_dimensionless());
+
+        // reciprocal
+        let recip = accel.negate();
+        assert_eq!(recip, DimensionVector { m: -1, s: 2, ..Default::default() });
+
+        // sqrt of area {m:2} → {m:1}
+        let area = DimensionVector { m: 2, ..Default::default() };
+        assert_eq!(area.halve(), Some(DimensionVector { m: 1, ..Default::default() }));
+
+        // sqrt of speed {m:1, s:-1} → None (odd exponent)
+        let speed = DimensionVector { m: 1, s: -1, ..Default::default() };
+        assert_eq!(speed.halve(), None);
     }
 }
