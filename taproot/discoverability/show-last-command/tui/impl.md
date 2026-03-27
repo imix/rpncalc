@@ -4,7 +4,7 @@
 ../usecase.md
 
 ## Design Decisions
-- **Label computed in handler, not app**: `command_label(mode, event)` lives in `handler.rs` alongside the key→action mapping. Called before `apply()` so the mode is still `Chord(cat)` when we need the chord leader char to build two-key labels (`rf`, `md`, etc.).
+- **Label computed in handler, not app**: `command_label(mode, event)` lives in `handler.rs` alongside the key→action mapping. Called before `apply()` so the mode is still `Chord(cat)` when we need the chord leader char to build two-key labels (`rf`, `Cd`, etc.).
 - **Label stored as formatted string in App**: `App.last_command: Option<String>` stores the full `"keys → op"` string. Simpler than storing keys and op separately; the display format is the contract.
 - **Centre truncation is omit-or-nothing**: If the centre label would overlap left or right sections, it is omitted entirely. No partial display. Left (`[NORMAL]`) and right (`RAD  DEC`) always take priority. Implemented by computing required widths and skipping the centre span if space is insufficient.
 - **`command_label` returns `None` for non-label-updating keys**: Chord leader entry, `InsertChar`, navigation, `AlphaSubmit`, `AlphaCancel`, `EnterStoreMode`, and `BrowseConfirm` all return `None`. Only `Execute(Op)`, `Undo`, `Redo`, `Yank`, `SetAngleMode`, `SetBase`, `SetHexStyle`, and `InsertSubmitThen` return `Some`.
@@ -30,7 +30,7 @@
 ## Status
 - **State:** complete
 - **Created:** 2026-03-25
-- **Last verified:** 2026-03-26
+- **Last verified:** 2026-03-27
 
 ## Notes
 None
