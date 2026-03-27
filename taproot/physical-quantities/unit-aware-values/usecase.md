@@ -88,9 +88,6 @@ CLI power user (engineer, scientist, or anyone performing real-world calculation
 ## Error Conditions
 - **Unrecognised unit:** User types an unknown unit abbreviation (e.g. `5 fathoms`) → system shows error "unknown unit: fathoms", input is not pushed onto the stack.
 - **Incompatible units in arithmetic:** User invokes `+` or `−` on two unit-tagged values from different categories (e.g. `1 oz + 1 m`) → system shows error "incompatible units: weight and length", stack is unchanged.
-- **Incompatible units in division:** User invokes `÷` on two unit-tagged values from different categories → system shows error "compound unit not supported", stack is unchanged.
-- **Multiplication of two unit-tagged values:** User invokes `×` on two unit-tagged values → system shows error "compound unit not supported", stack is unchanged.
-- **`1/x` or `sqrt` on a unit-tagged value:** System shows error "compound unit not supported", stack is unchanged.
 - **Convert to incompatible unit:** User invokes convert targeting a unit from a different category (e.g. convert `1.9 oz` to `m`) → system shows error "incompatible units: cannot convert weight to length", stack is unchanged.
 - **Convert on a unitless value:** User invokes convert when position 1 carries no unit → system shows error "no unit: value has no unit to convert", stack is unchanged.
 - **Addition/subtraction of unitless and unit-tagged:** User invokes `+` or `−` with one plain number and one unit-tagged value → system shows error "incompatible units", stack is unchanged.
@@ -220,10 +217,10 @@ sequenceDiagram
 - When the user presses `÷`
 - Then the stack displays the plain number `2` with no unit label
 
-**AC-18: Multiplication of two unit-tagged values — error**
+**AC-18: Multiplication of two unit-tagged values — compound unit result**
 - Given the stack has `3 oz` at position 2 and `2 oz` at position 1
 - When the user presses `×`
-- Then an error message "compound unit not supported" is shown and the stack is unchanged
+- Then the stack displays `6 oz2`
 
 **AC-19: Space-optional input grammar — no space**
 - Given rpnpad is running
@@ -254,6 +251,14 @@ sequenceDiagram
   - If top is a temperature value: Temperature group only — `°C`  `°F`  (aliases: `C`  `degC`  `degF`  `F`)
   - If top is a compound unit value (e.g. `km/h`, `m/s2`): a `COMPOUND UNIT` section showing the source unit expression and a prompt to enter a compatible unit expression (same dimensions)
 
+**AC-24: UNITS section in Normal mode is conditional on a tagged stack top**
+- Given the stack top is a unit-tagged value
+- When the hints pane renders in Normal mode
+- Then a `UNITS` section is visible containing: `U  convert`
+- And given the stack top is a plain number or the stack is empty
+- When the hints pane renders in Normal mode
+- Then no `UNITS` section is visible
+
 **AC-25: Insert mode hints show unit input syntax**
 - Given rpnpad is in Insert mode (user is typing a number)
 - When the hints pane renders
@@ -265,21 +270,13 @@ sequenceDiagram
 - Then the input line displays `> km_` (typed text followed by cursor)
 - And when the buffer is empty, the input line displays `> _` (cursor only)
 
-**AC-24: UNITS section in Normal mode is conditional on a tagged stack top**
-- Given the stack top is a unit-tagged value
-- When the hints pane renders in Normal mode
-- Then a `UNITS` section is visible containing: `U  convert`
-- And given the stack top is a plain number or the stack is empty
-- When the hints pane renders in Normal mode
-- Then no `UNITS` section is visible
-
 ## Implementations <!-- taproot-managed -->
 - [tui](./tui/impl.md)
 
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-25
-- **Last reviewed:** 2026-03-26
+- **Last reviewed:** 2026-03-27
 
 ## Notes
 - The internal unit model uses compound unit representation (numerator/denominator dimension vectors) from the outset, so derived units (m/s, kg·m/s²) can be added without refactoring value types. This is invisible to the user in the first delivery.
