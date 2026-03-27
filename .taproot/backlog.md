@@ -1,1 +1,2 @@
 - [2026-03-26] output unit aliases: after arithmetic produces kg*m/s2, display as N (collapsed form) — deferred: storage/display entanglement, session.json canonical-vs-display decision, multi-alias ambiguity
+- [2026-03-27] add dyn (dyne) and lbf (pound-force) to unit registry — unblocks unit-aliases AC-2 (alias-resolved value converts to dyn/lbf)
