@@ -8,11 +8,11 @@
 Enable users on Linux and macOS to install rpnpad with a single command — no Rust toolchain required. When a new version is tagged, the release pipeline runs automatically and produces installable artifacts, so users always have a frictionless path to the latest build.
 
 ## Success Criteria
-- [ ] A macOS user can install rpnpad with `brew install` and have it on PATH
-- [ ] A Linux user can install rpnpad with a `curl | sh` script and have it on PATH
-- [ ] Pushing a git tag triggers the full release pipeline without manual steps
-- [ ] `cargo install rpnpad` continues to work for users who do have Rust
-- [ ] Release artifacts are reproducibly built from source in CI
+- [x] A macOS user can install rpnpad with `brew install` and have it on PATH
+- [x] A Linux user can install rpnpad with a `curl | sh` script and have it on PATH
+- [x] Pushing a git tag triggers the full release pipeline without manual steps
+- [x] `cargo install rpnpad` continues to work for users who do have Rust
+- [x] Release artifacts are reproducibly built from source in CI
 
 ## Constraints
 - Must be maintainable by a solo developer with no dedicated DevOps support
@@ -28,9 +28,9 @@ Enable users on Linux and macOS to install rpnpad with a single command — no R
 - [User installs rpnpad via Snap Store](./install-via-snap/usecase.md)
 
 ## Status
-- **State:** draft
+- **State:** active
 - **Created:** 2026-03-24
-- **Last reviewed:** 2026-03-24
+- **Last reviewed:** 2026-03-27
 
 ## Notes
 - cargo-dist is the primary vehicle: it generates GitHub Actions workflows, a Homebrew tap formula, and a shell installer from a single `cargo dist init` invocation

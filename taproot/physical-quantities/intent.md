@@ -14,7 +14,6 @@ Enable users to tag stack values with physical units and convert between compati
 - [x] The unit model supports compound units (e.g. m/s, kg·m/s²) internally from the start, so derived units can be added without refactoring
 
 ## Constraints
-- Compound units (speed, pressure, etc.) are not user-facing in the first delivery — the architecture must accommodate them, but they ship as a later behaviour
 - Currency conversion is out of scope
 - Cross-category arithmetic (e.g. `1 oz + 1 ft`) must produce a clear error, not a silent wrong result
 
@@ -27,8 +26,8 @@ Enable users to tag stack values with physical units and convert between compati
 ## Status
 - **State:** active
 - **Created:** 2026-03-25
-- **Last reviewed:** 2026-03-26
+- **Last reviewed:** 2026-03-27
 
 ## Notes
 - The HP48 unit object model is a useful reference: values carry a unit tag, and the calculator handles conversion automatically when units are compatible.
-- Phase 2 (compound units, speed, pressure, etc.) is a natural extension of this intent once the core model is in place.
+- Compound unit operations (speed, force, area, etc.) are user-facing and implemented via the `compound-unit-operations` behaviour.
