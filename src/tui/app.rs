@@ -5,7 +5,6 @@ use crate::engine::{
     ops,
     stack::CalcState,
     undo::UndoHistory,
-    units::lookup_unit,
     value::CalcValue,
 };
 use crate::input::{action::Action, commands::parse_command, mode::AppMode, parser::parse_value};
