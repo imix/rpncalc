@@ -350,13 +350,13 @@ jobs:
           ls -la target/distrib/
           TARBALL=$(ls target/distrib/rpnpad-*x86_64*linux*.tar.xz | head -1)
           echo "Using tarball: $TARBALL"
-          tar -xf "$TARBALL" -C snap/ --strip-components=1
-          echo "${{ needs.plan.outputs.tag }}" | sed 's/^v//' > snap/version.txt
+          tar -xf "$TARBALL" -C channels/snap/ --strip-components=1
+          echo "${{ needs.plan.outputs.tag }}" | sed 's/^v//' > channels/snap/version.txt
       - name: Build snap
         uses: snapcore/action-build@v1
         id: snapcraft
         with:
-          path: snap/
+          path: channels/snap/
       - name: Publish snap
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}

@@ -3,13 +3,17 @@ name: 'tr-promote'
 description: 'Escalate a significant finding from implementation or behaviour level up to the intent'
 ---
 
+<!-- taproot:cli-invocation: ./taproot/agent/bin/taproot -->
+**CLI:** All taproot commands in this skill must use `./taproot/agent/bin/taproot` instead of bare `taproot`.
+
 IT IS CRITICAL THAT YOU FOLLOW THESE STEPS EXACTLY:
 
 <steps CRITICAL="TRUE">
-1. LOAD the FULL skill file at @{project-root}/.taproot/skills/promote.md
+1. LOAD the FULL skill file at @{project-root}/taproot/agent/skills/promote.md
 2. READ its entire contents — this contains the complete skill definition with steps, inputs, and output format
 3. FOLLOW every step in the ## Steps section precisely and in order
 4. When the skill references other taproot commands (e.g. `/taproot:intent`), use the corresponding `/tr-intent` command instead
 5. Save all outputs to the paths specified in the skill's ## Output section
-6. Run `taproot overview` to update @{project-root}/taproot/OVERVIEW.md with the current project state
+6. When the skill says to run `taproot <cmd>`, run `./taproot/agent/bin/taproot <cmd>` instead
+7. Run `./taproot/agent/bin/taproot overview` to update @{project-root}/taproot/OVERVIEW.md with the current project state
 </steps>

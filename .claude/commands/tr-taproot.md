@@ -9,7 +9,7 @@ This file is a quick reference for configuring taproot. Read it when asked to ch
 
 ## Configuration Quick Reference
 
-Edit `.taproot/settings.yaml` to configure taproot. Run `taproot update` after changes.
+Edit `taproot/settings.yaml` to configure taproot. Run `taproot update` after changes.
 
 | Option | Type | Description |
 |--------|------|-------------|
@@ -18,8 +18,8 @@ Edit `.taproot/settings.yaml` to configure taproot. Run `taproot update` after c
 | `definitionOfDone` | list | Shell commands run as gates before implementation commits. |
 | `cli` | string | CLI invocation prefix. Default: `npx @imix-js/taproot`. Override: `cli: taproot` (global install). |
 
-See `.taproot/CONFIGURATION.md` for the full reference and examples.
+See `taproot/agent/CONFIGURATION.md` for the full reference and examples.
 
-<!-- taproot:cli-invocation: npx @imix-js/taproot -->
-When running taproot commands in this project, replace bare `taproot` with: `npx @imix-js/taproot`
-Example: `npx @imix-js/taproot dod taproot/some-intent/some-behaviour/impl-name/impl.md`
+<!-- taproot:cli-invocation: ./taproot/agent/bin/taproot -->
+When running taproot commands in this project, replace bare `taproot` with: `./taproot/agent/bin/taproot`
+Example: `./taproot/agent/bin/taproot dod taproot/some-intent/some-behaviour/impl-name/impl.md`
