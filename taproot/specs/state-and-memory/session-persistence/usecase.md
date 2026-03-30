@@ -8,7 +8,7 @@ User (CLI power user)
 - `~/.rpnpad/` directory is writable
 
 ## Main Flow
-1. User quits rpnpad (`q`) or the process receives SIGTERM
+1. User quits rpnpad (`Q`) or the process receives SIGTERM
 2. Current CalcState (stack + registers) is written atomically to
    `~/.rpnpad/session.json` via write-to-temp → rename
 3. On next launch: config is loaded, then session.json is read and
@@ -42,11 +42,11 @@ stateDiagram-v2
     [*] --> Running : launch — no session file → empty state
     [*] --> Running : launch — valid session.json → state restored
     [*] --> Running : launch — corrupt session.json → empty state + ErrorLine
-    Running --> [*] : quit (q) or SIGTERM → session.json written atomically
+    Running --> [*] : quit (Q) or SIGTERM → session.json written atomically
 ```
 
 ## Acceptance Criteria
-**AC-1:** Given `persist_session = true` and the user quits with `q`, then the current CalcState is written atomically to `~/.rpnpad/session.json`.
+**AC-1:** Given `persist_session = true` and the user quits with `Q`, then the current CalcState is written atomically to `~/.rpnpad/session.json`.
 
 **AC-2:** Given a valid `session.json` exists on launch, then the prior stack and registers are restored before the first frame renders.
 
@@ -69,4 +69,4 @@ stateDiagram-v2
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-21
-- **Last reviewed:** 2026-03-27
+- **Last reviewed:** 2026-03-30

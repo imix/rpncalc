@@ -18,6 +18,10 @@ User (CLI power user)
 - **Multiple undos**: user presses `u` repeatedly, stepping back through
   history one snapshot at a time
 - **Redo after undo**: `Ctrl-R` re-applies the undone operation
+- **RESET command**: user types `RESET` in Alpha mode and presses Enter —
+  CalcState is cleared (stack and registers emptied); the pre-reset state is
+  snapshotted on the undo stack and can be restored with `u`. RESET counts as
+  a new operation and clears the redo stack.
 
 ## Error Conditions
 - **Nothing to undo**: undo stack is empty — error shown on ErrorLine,
@@ -63,4 +67,4 @@ stateDiagram-v2
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-21
-- **Last reviewed:** 2026-03-24
+- **Last reviewed:** 2026-03-30

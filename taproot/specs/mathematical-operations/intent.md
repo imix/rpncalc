@@ -10,7 +10,7 @@ stacked values and control the numeric modes that govern their computation.
   arithmetic through occasional trig and bitwise work
 
 ## Success Criteria
-- All 41 MVP operations are executable from the keyboard without external docs
+- All MVP operations are executable from the keyboard without external docs
 - Numeric base (DEC/HEX/OCT/BIN) and angle mode (DEG/RAD/GRAD) can be
   switched mid-session with a single chord
 - Arithmetic errors (division by zero, domain errors) are caught and reported

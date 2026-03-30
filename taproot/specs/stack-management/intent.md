@@ -10,7 +10,8 @@ medium for RPN computation.
 
 ## Success Criteria
 - Any numeric literal (integer, float, hex, octal, binary) can be pushed
-  onto the stack in under 2 keypresses
+  onto the stack without an explicit mode-switch keypress — typing the first
+  digit automatically enters Insert mode
 - Stack manipulation operations (swap, dup, drop, rotate, clear) are
   reachable from a single keypress in normal mode
 - The full stack is always visible with the most-recent value at the top

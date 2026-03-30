@@ -20,9 +20,10 @@ User (CLI power user)
 - **Binary literal (0b…)**: parsed as integer in binary base
 - **Float literal (digits with `.`)**: parsed as arbitrary-precision Float
 - **User presses Esc mid-entry**: Insert mode exits, buffer discarded, no push
-- **Operation shortcut**: in Insert mode, keys `s` `d` `r` `n` `p` `+` `-` `*`
+- **Operation shortcut**: in Insert mode, keys `s` `r` `n` `p` `+` `-` `*`
   `/` `^` `%` `!` act as immediate shortcuts — submit the current buffer then
-  execute the operation (e.g. type `3`, press `s` → push 3, swap).
+  execute the operation (e.g. type `3`, press `s` → push 3, swap). (`d` is
+  excluded — it is Noop in Normal mode; use `Backspace` to drop.)
   **Constraint:** the `/` shortcut (and all other op shortcuts) only fire when
   no space has been typed yet (pure numeric context). Once a space is entered,
   the buffer is in unit expression context and `/` is treated as a literal character.
@@ -100,5 +101,5 @@ stateDiagram-v2
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-21
-- **Last reviewed:** 2026-03-26
+- **Last reviewed:** 2026-03-30
 

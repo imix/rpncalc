@@ -74,6 +74,11 @@ stateDiagram-v2
 
 **AC-8:** Given Normal mode and a unit-tagged value at the stack top, when the hints pane renders, then a UNITS section appears with `U  convert`. Given Normal mode and a plain or absent stack top, the UNITS section is absent.
 
+**AC-9: PrecisionInput mode shows modal hints**
+- Given the user is in PrecisionInput mode (`[PREC]` sub-mode, entered via `C›p`)
+- When the hints pane renders
+- Then the normal operation grid is replaced by a modal layout showing: a `PRECISION INPUT` mode header, a key table listing `Enter` (confirm), `Esc` (cancel), `Backspace` (delete digit), and a note indicating valid range (`1–15`); no chord leaders are shown
+
 ## Related
 - **Sibling**: [User executes an operation via chord sequence](../execute-chord-operation/usecase.md)
 - **Parent intent**: [Discoverability](../../intent.md)
@@ -86,4 +91,4 @@ stateDiagram-v2
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-21
-- **Last reviewed:** 2026-03-26
+- **Last reviewed:** 2026-03-30

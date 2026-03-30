@@ -150,10 +150,10 @@ stateDiagram-v2
 - When user quits and relaunches rpnpad
 - Then notation is `sci` and precision is `6` from the first frame
 
-**AC-12: m and x are Noop in Normal mode**
-- Given Normal mode (after `m›` and `x›` are removed)
-- When user presses `m` or `x`
-- Then both keys are Noop; no chord mode is entered; no error shown
+**AC-12: m, x, and X are Noop in Normal mode**
+- Given Normal mode (after `m›`, `x›`, and `X›` are removed)
+- When user presses `m`, `x`, or `X`
+- Then all three keys are Noop; no chord mode is entered; no error shown
 
 **AC-13: C› hints pane shows all setting categories**
 - Given `C›` chord is active
@@ -183,7 +183,7 @@ stateDiagram-v2
 ## Status
 - **State:** implemented
 - **Created:** 2026-03-25
-- **Last reviewed:** 2026-03-25
+- **Last reviewed:** 2026-03-30
 
 ## Notes
 - **Notation threshold for `auto` mode**: sci notation activates when `|value| ≥ 1e10` or `(|value| < 1e-4 and value ≠ 0)`. To be confirmed during implementation.
